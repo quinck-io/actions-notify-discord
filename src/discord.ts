@@ -57,9 +57,8 @@ const getJobStatusMessage = (
     params: DiscordNotificationParams,
     statusIcon: string,
 ) => `
-    ${statusIcon} Status: *${params.status.toUpperCase()}*
-    ${process.env.GITHUB_WORKFLOW}: ${process.env.GITHUB_JOB}
-`
+${statusIcon} Status: *${params.status.toUpperCase()}*
+${process.env.GITHUB_WORKFLOW}: ${process.env.GITHUB_JOB}`
 
 /**
  * Send a Discord webhook.
