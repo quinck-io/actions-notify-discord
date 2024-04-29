@@ -1,0 +1,27 @@
+name: 'Discord Notifier'
+
+description: 'Send message notifications to Discord'
+
+inputs:
+    webhookUrl:
+        description: 'Discord Webhook URL'
+        required: true
+    status:
+        description: 'Status of the build'
+        required: true
+    projectName:
+        description: 'Name of the project'
+        required: true
+    testResultsUrl:
+        description: 'URL to test results'
+        required: false
+    sonarUrl:
+        description: 'URL to SonarCloud'
+        required: false
+    sonarQualityGateStatus:
+        description: 'Status of the SonarCloud Quality Gate'
+        required: false
+
+runs:
+    using: 'node20'
+    main: 'src/main.js'
