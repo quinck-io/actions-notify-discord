@@ -22,7 +22,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // src/main.ts
-var import_fs = __toESM(require("fs"), 1);
+var import_fs = __toESM(require("fs"));
 
 // src/utils.ts
 var successIcons = [
