@@ -1,7 +1,7 @@
 import fs from 'fs'
 import { sendDiscordWebhook } from './discord'
 
-const required = <T extends {}>(obj: T): Required<T> => {
+const required = <T extends Record<string, unknown>>(obj: T): Required<T> => {
     Object.entries(obj).forEach(([key, value]) => {
         if (!value) throw new Error(`Required parameter ${key} is not set.`)
     })
