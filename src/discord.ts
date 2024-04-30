@@ -95,11 +95,13 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
         embeds: [embed],
     })
 
-    await fetch(webhookUrl, {
+    const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body,
     })
+
+    console.log(response)
 }
