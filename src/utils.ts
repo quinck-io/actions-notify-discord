@@ -1,18 +1,6 @@
-export const successIcons = [
-    ':unicorn:',
-    ':man_dancing:',
-    ':ghost:',
-    ':dancer:',
-    ':scream_cat:',
-]
+export const successIcons = [':unicorn:', ':man_dancing:', ':ghost:', ':dancer:', ':scream_cat:']
 
-export const failureIcons = [
-    ':fire:',
-    'dizzy_face',
-    ':man_facepalming:',
-    ':poop:',
-    ':skull:',
-]
+export const failureIcons = [':fire:', 'dizzy_face', ':man_facepalming:', ':poop:', ':skull:']
 
 /**
  * Get a random success message

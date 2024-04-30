@@ -21,6 +21,12 @@ inputs:
     sonarQualityGateStatus:
         description: 'Status of the SonarCloud Quality Gate'
         required: false
+    username:
+        description: 'Username to display in the message'
+        required: false
+    avatarUrl:
+        description: 'URL to the avatar image'
+        required: false
 
 runs:
     using: 'node20'

@@ -1,11 +1,4 @@
-import {
-    failureIcons,
-    failureMessages,
-    getColor,
-    getStatusInfo,
-    successIcons,
-    successMessages,
-} from './utils'
+import { failureIcons, failureMessages, getColor, getStatusInfo, successIcons, successMessages } from './utils'
 
 export type DiscordNotificationParams = {
     webhookUrl: string
@@ -23,11 +16,13 @@ export type DiscordNotificationParams = {
     }
     sonarProjectKey?: string
     sonarQualityGateStatus?: string
+    avatarUrl?: string
+    username?: string
 }
 
 const getFooterText = (params: DiscordNotificationParams) => {
     const { event } = params
-    if (!event?.head_commit) return ''
+    if (!event?.head_commit) return undefined
     return `
 Commit: ${event.head_commit.timestamp}
 Message: ${event.head_commit.message}
@@ -48,27 +43,21 @@ const getSonarMessage = (params: DiscordNotificationParams) => {
         const sonarUrl = `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${refName}`
         sonarMessage.push(`SonarCloud: [View Report](${sonarUrl})`)
     }
-    if (sonarQualityGateStatus)
-        sonarMessage.push(`Quality Gate: *${sonarQualityGateStatus}*`)
+    if (sonarQualityGateStatus) sonarMessage.push(`Quality Gate: *${sonarQualityGateStatus}*`)
 
     if (sonarMessage.length <= 0) return undefined
 
     return sonarMessage.join('\n')
 }
 
-const getJobStatusMessage = (
-    params: DiscordNotificationParams,
-    statusIcon: string,
-) => `
+const getJobStatusMessage = (params: DiscordNotificationParams, statusIcon: string) => `
 ${statusIcon} Status: *${params.status.toUpperCase()}*
 ${process.env.GITHUB_WORKFLOW}: ${process.env.GITHUB_JOB}`
 
 /**
  * Send a Discord webhook.
  */
-export async function sendDiscordWebhook(
-    params: DiscordNotificationParams,
-): Promise<void> {
+export async function sendDiscordWebhook(params: DiscordNotificationParams): Promise<void> {
     const { webhookUrl, status, projectName, refName, event } = params
 
     const author = event?.head_commit?.author?.name ?? 'Unknown'
@@ -84,9 +73,7 @@ export async function sendDiscordWebhook(
 
     const descs = [jobStatusMessage, sonarMessage, testMessage, statusMessage]
 
-    const embedDescription = descs
-        .filter(desc => desc !== undefined)
-        .join('\n\n')
+    const embedDescription = descs.filter(desc => desc !== undefined).join('\n\n')
 
     const footerText = getFooterText(params)
 
@@ -94,14 +81,17 @@ export async function sendDiscordWebhook(
         title: `${projectName}/${refName}`,
         url: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
         description: embedDescription,
-        footer: {
-            text: footerText,
-        },
         color: getColor(status),
     }
 
+    if (footerText) embed['footer'] = { text: footerText }
+
+    const username = params.username ?? 'GitHub Actions'
+    const avatar_url = params.avatarUrl ?? 'https://cdn-icons-png.flaticon.com/512/25/25231.png'
+
     const body = JSON.stringify({
-        username: 'GitHub Actions',
+        username,
+        avatar_url,
         embeds: [embed],
     })
 
