@@ -113,13 +113,16 @@ async function sendDiscordWebhook(params) {
     avatar_url,
     embeds: [embed]
   });
-  await fetch(webhookUrl2, {
+  console.log("Sending Discord webhook...");
+  console.log(body);
+  const response = await fetch(webhookUrl2, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body
   });
+  console.log(response);
 }
 
 // src/main.ts
