@@ -15,8 +15,8 @@ inputs:
     testResultsUrl:
         description: 'URL to test results'
         required: false
-    sonarUrl:
-        description: 'URL to SonarCloud'
+    sonarProjectKey:
+        description: 'SonarCloud project key'
         required: false
     sonarQualityGateStatus:
         description: 'Status of the SonarCloud Quality Gate'

@@ -12,7 +12,7 @@ const webhookUrl = process.env.INPUT_WEBHOOKURL
 const status = process.env.INPUT_STATUS
 const projectName = process.env.INPUT_PROJECTNAME
 const testResultsUrl = process.env.INPUT_TESTRESULTSURL
-const sonarUrl = process.env.INPUT_SONARURL
+const sonarProjectKey = process.env.INPUT_SONARPROJECTKEY
 const sonarQualityGateStatus = process.env.INPUT_SONARQUALITYGATESTATUS
 const eventPath = process.env.GITHUB_EVENT_PATH
 const refName = process.env.GITHUB_REF_NAME
@@ -43,7 +43,7 @@ const work = async () => {
         refName: reqInputs.refName,
         event,
         testResultsUrl,
-        sonarUrl,
+        sonarProjectKey,
         sonarQualityGateStatus,
     })
 }

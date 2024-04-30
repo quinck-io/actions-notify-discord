@@ -21,7 +21,7 @@ export type DiscordNotificationParams = {
             id: string
         }
     }
-    sonarUrl?: string
+    sonarProjectKey?: string
     sonarQualityGateStatus?: string
 }
 
@@ -41,10 +41,13 @@ const getTestMessage = (params: DiscordNotificationParams) => {
 }
 
 const getSonarMessage = (params: DiscordNotificationParams) => {
-    const { sonarUrl, sonarQualityGateStatus } = params
+    const { sonarProjectKey, sonarQualityGateStatus, refName } = params
 
     const sonarMessage: string[] = []
-    if (sonarUrl) sonarMessage.push(`SonarCloud: [View Report](${sonarUrl})`)
+    if (sonarProjectKey) {
+        const sonarUrl = `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${refName}`
+        sonarMessage.push(`SonarCloud: [View Report](${sonarUrl})`)
+    }
     if (sonarQualityGateStatus)
         sonarMessage.push(`Quality Gate: *${sonarQualityGateStatus}*`)
 
