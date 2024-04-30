@@ -25,20 +25,8 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var import_fs = __toESM(require("fs"));
 
 // src/utils.ts
-var successIcons = [
-  ":unicorn:",
-  ":man_dancing:",
-  ":ghost:",
-  ":dancer:",
-  ":scream_cat:"
-];
-var failureIcons = [
-  ":fire:",
-  "dizzy_face",
-  ":man_facepalming:",
-  ":poop:",
-  ":skull:"
-];
+var successIcons = [":unicorn:", ":man_dancing:", ":ghost:", ":dancer:", ":scream_cat:"];
+var failureIcons = [":fire:", "dizzy_face", ":man_facepalming:", ":poop:", ":skull:"];
 var successMessages = (author) => [
   `:champagne::champagne:Congrats **${author}**, you made it. :sunglasses::champagne::champagne:`,
   `:moyai::moyai:Mah man **${author}**, you made it. :women_with_bunny_ears_partying::moyai::moyai:`,
@@ -68,54 +56,61 @@ var getColor = (status2) => {
   }
 };
 
-// src/main.ts
-async function sendDiscordWebhook({
-  webhookUrl: webhookUrl2,
-  status: status2,
-  projectName: projectName2,
-  refName,
-  event,
-  testResultsUrl: testResultsUrl2,
-  sonarUrl: sonarUrl2,
-  sonarQualityGateStatus: sonarQualityGateStatus2
-}) {
-  const { statusIcon, statusMessage } = status2 === "success" ? getStatusInfo(
-    successIcons,
-    successMessages(event.head_commit.author.name)
-  ) : getStatusInfo(
-    failureIcons,
-    failureMessages(event.head_commit.author.name)
-  );
-  const testMessage = testResultsUrl2 ? `Test Results: [View Results](${testResultsUrl2})` : "";
-  const sonarMessage = sonarUrl2 ? `SonarCloud: [View Report](${sonarUrl2})` : "";
-  const sonarStatus = sonarQualityGateStatus2 ? `Quality Gate: *${sonarQualityGateStatus2}*` : "";
-  const embedDescription = `
-${statusIcon} Status: *${status2.toUpperCase()}*
-${process.env.GITHUB_WORKFLOW}: ${process.env.GITHUB_JOB}
-
-${testMessage}
-
-${sonarMessage}
-${sonarStatus}
-
-${statusMessage}
-`;
-  const footerText = `
+// src/discord.ts
+var getFooterText = (params) => {
+  const { event } = params;
+  if (!event?.head_commit)
+    return void 0;
+  return `
 Commit: ${event.head_commit.timestamp}
 Message: ${event.head_commit.message}
 Hash: ${event.head_commit.id.slice(0, 7)}
 `;
+};
+var getTestMessage = (params) => {
+  if (!params.testResultsUrl)
+    return void 0;
+  return `Test Results: [View Results](${params.testResultsUrl})`;
+};
+var getSonarMessage = (params) => {
+  const { sonarProjectKey: sonarProjectKey2, sonarQualityGateStatus: sonarQualityGateStatus2, refName: refName2 } = params;
+  const sonarMessage = [];
+  if (sonarProjectKey2) {
+    const sonarUrl = `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey2}&branch=${refName2}`;
+    sonarMessage.push(`SonarCloud: [View Report](${sonarUrl})`);
+  }
+  if (sonarQualityGateStatus2)
+    sonarMessage.push(`Quality Gate: *${sonarQualityGateStatus2}*`);
+  if (sonarMessage.length <= 0)
+    return void 0;
+  return sonarMessage.join("\n");
+};
+var getJobStatusMessage = (params, statusIcon) => `
+${statusIcon} Status: *${params.status.toUpperCase()}*
+${process.env.GITHUB_WORKFLOW}: ${process.env.GITHUB_JOB}`;
+async function sendDiscordWebhook(params) {
+  const { webhookUrl: webhookUrl2, status: status2, projectName: projectName2, refName: refName2, event } = params;
+  const author = event?.head_commit?.author?.name ?? "Unknown";
+  const { statusIcon, statusMessage } = status2 === "success" ? getStatusInfo(successIcons, successMessages(author)) : getStatusInfo(failureIcons, failureMessages(author));
+  const jobStatusMessage = getJobStatusMessage(params, statusIcon);
+  const testMessage = getTestMessage(params);
+  const sonarMessage = getSonarMessage(params);
+  const descs = [jobStatusMessage, sonarMessage, testMessage, statusMessage];
+  const embedDescription = descs.filter((desc) => desc !== void 0).join("\n\n");
+  const footerText = getFooterText(params);
   const embed = {
-    title: `${projectName2}/${refName}`,
+    title: `${projectName2}/${refName2}`,
     url: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
     description: embedDescription,
-    footer: {
-      text: footerText
-    },
     color: getColor(status2)
   };
+  if (footerText)
+    embed["footer"] = { text: footerText };
+  const username2 = params.username ?? "GitHub Actions";
+  const avatar_url = params.avatarUrl ?? "https://cdn-icons-png.flaticon.com/512/25/25231.png";
   const body = JSON.stringify({
-    username: "GitHub Actions",
+    username: username2,
+    avatar_url,
     embeds: [embed]
   });
   await fetch(webhookUrl2, {
@@ -126,38 +121,48 @@ Hash: ${event.head_commit.id.slice(0, 7)}
     body
   });
 }
-var nameOf = (obj) => Object.keys(obj)[0];
+
+// src/main.ts
 var required = (obj) => {
-  const name = nameOf(obj);
-  if (!obj[name]) {
-    throw new Error(`Required parameter ${name} is not set.`);
-  }
-  return obj[name];
+  Object.entries(obj).forEach(([key, value]) => {
+    if (!value)
+      throw new Error(`Required parameter ${key} is not set.`);
+  });
+  return obj;
 };
 var webhookUrl = process.env.INPUT_WEBHOOKURL;
 var status = process.env.INPUT_STATUS;
 var projectName = process.env.INPUT_PROJECTNAME;
 var testResultsUrl = process.env.INPUT_TESTRESULTSURL;
-var sonarUrl = process.env.INPUT_SONARURL;
+var sonarProjectKey = process.env.INPUT_SONARPROJECTKEY;
 var sonarQualityGateStatus = process.env.INPUT_SONARQUALITYGATESTATUS;
 var eventPath = process.env.GITHUB_EVENT_PATH;
-required({ webhookUrl });
-required({ status });
-required({ projectName });
-required({ eventPath });
-if (eventPath) {
-  const refName = process.env.GITHUB_REF_NAME;
-  const event = JSON.parse(import_fs.default.readFileSync(eventPath, "utf8"));
-  sendDiscordWebhook({
-    webhookUrl,
-    status,
-    projectName,
-    refName,
+var refName = process.env.GITHUB_REF_NAME;
+var avatarUrl = process.env.INPUT_AVATARURL;
+var username = process.env.INPUT_USERNAME;
+var reqInputs = required({
+  webhookUrl,
+  status,
+  projectName,
+  eventPath,
+  refName
+});
+var work = async () => {
+  const event = JSON.parse(import_fs.default.readFileSync(reqInputs.eventPath, "utf8"));
+  await sendDiscordWebhook({
+    webhookUrl: reqInputs.webhookUrl,
+    status: reqInputs.status,
+    projectName: reqInputs.projectName,
+    refName: reqInputs.refName,
     event,
     testResultsUrl,
-    sonarUrl,
-    sonarQualityGateStatus
+    sonarProjectKey,
+    sonarQualityGateStatus,
+    avatarUrl,
+    username
   });
-} else {
-  console.log("GITHUB_EVENT_PATH environment variable is not set.");
-}
+};
+work().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
