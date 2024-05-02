@@ -54,6 +54,8 @@ const getJobStatusMessage = (params: DiscordNotificationParams, statusIcon: stri
 ${statusIcon} Status: *${params.status.toUpperCase()}*
 ${process.env.GITHUB_WORKFLOW}: ${process.env.GITHUB_JOB}`
 
+const stringOrDefault = (str: string | null | undefined, def: string) => (str ? str : def)
+
 /**
  * Send a Discord webhook.
  */
@@ -86,8 +88,8 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
 
     if (footerText) embed['footer'] = { text: footerText }
 
-    const username = params.username ?? 'GitHub Actions'
-    const avatar_url = params.avatarUrl ?? 'https://cdn-icons-png.flaticon.com/512/25/25231.png'
+    const username = stringOrDefault(params.username, 'GitHub Actions')
+    const avatar_url = stringOrDefault(params.avatarUrl, 'https://cdn-icons-png.flaticon.com/512/25/25231.png')
 
     const body = JSON.stringify({
         username,
@@ -95,16 +97,11 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
         embeds: [embed],
     })
 
-    console.log('Sending Discord webhook...')
-    console.log(body)
-
-    const response = await fetch(webhookUrl, {
+    await fetch(webhookUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body,
     })
-
-    console.log(response)
 }
