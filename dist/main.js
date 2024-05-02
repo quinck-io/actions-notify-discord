@@ -88,6 +88,7 @@ var getSonarMessage = (params) => {
 var getJobStatusMessage = (params, statusIcon) => `
 ${statusIcon} Status: *${params.status.toUpperCase()}*
 ${process.env.GITHUB_WORKFLOW}: ${process.env.GITHUB_JOB}`;
+var stringOrDefault = (str, def) => str ? str : def;
 async function sendDiscordWebhook(params) {
   const { webhookUrl: webhookUrl2, status: status2, projectName: projectName2, refName: refName2, event } = params;
   const author = event?.head_commit?.author?.name ?? "Unknown";
@@ -106,23 +107,20 @@ async function sendDiscordWebhook(params) {
   };
   if (footerText)
     embed["footer"] = { text: footerText };
-  const username2 = params.username ?? "GitHub Actions";
-  const avatar_url = params.avatarUrl ?? "https://cdn-icons-png.flaticon.com/512/25/25231.png";
+  const username2 = stringOrDefault(params.username, "GitHub Actions");
+  const avatar_url = stringOrDefault(params.avatarUrl, "https://cdn-icons-png.flaticon.com/512/25/25231.png");
   const body = JSON.stringify({
     username: username2,
     avatar_url,
     embeds: [embed]
   });
-  console.log("Sending Discord webhook...");
-  console.log(body);
-  const response = await fetch(webhookUrl2, {
+  await fetch(webhookUrl2, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body
   });
-  console.log(response);
 }
 
 // src/main.ts
