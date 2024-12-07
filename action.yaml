@@ -24,6 +24,9 @@ inputs:
     username:
         description: 'Username to display in the message'
         required: false
+    failedJob:
+        description: 'Name of the failed job'
+        required: false
     avatarUrl:
         description: 'URL to the avatar image'
         required: false
