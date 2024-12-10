@@ -1,12 +1,9 @@
+import { ActionInput } from './input'
 import { failureIcons, failureMessages, getColor, getStatusInfo, successIcons, successMessages } from './utils'
 
-export type DiscordNotificationParams = {
-    webhookUrl: string
-    status: string
-    projectName: string
-    refName: string
-    testResultsUrl?: string
-    failedJob?: string
+
+
+export type DiscordNotificationParams = ActionInput & {
     event?: {
         head_commit?: {
             author: { name: string }
@@ -15,10 +12,6 @@ export type DiscordNotificationParams = {
             id: string
         }
     }
-    sonarProjectKey?: string
-    sonarQualityGateStatus?: string
-    avatarUrl?: string
-    username?: string
 }
 
 const getFooterText = (params: DiscordNotificationParams) => {
