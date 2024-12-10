@@ -34,6 +34,9 @@ This GitHub Action, named Discord Notifier, allows you to send message notificat
       # [Optional] URL to the avatar image
       # Default: https://cdn-icons-png.flaticon.com/512/25/25231.png
       avatarUrl: ''
+      
+      # [Optional] Name of the last failed job
+      failedJob: ''
 ```
 
 # Scenarios

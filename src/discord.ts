@@ -2,7 +2,7 @@ import { failureIcons, failureMessages, getColor, getStatusInfo, successIcons, s
 
 export type DiscordNotificationParams = {
     webhookUrl: string
-    status: 'success' | 'failure'
+    status: string
     projectName: string
     refName: string
     testResultsUrl?: string
@@ -52,7 +52,7 @@ const getSonarMessage = (params: DiscordNotificationParams) => {
 }
 
 const getJobStatusMessage = (params: DiscordNotificationParams, statusIcon: string): string => `${statusIcon} Status: *${params.status.toUpperCase()}*
-${process.env.GITHUB_WORKFLOW}: ${process.env.GITHUB_JOB}`
+${process.env.GITHUB_WORKFLOW}: ${params.failedJob ?? process.env.GITHUB_JOB}`
 
 const stringOrDefault = (str: string | null | undefined, def: string) => (str ? str : def)
 
