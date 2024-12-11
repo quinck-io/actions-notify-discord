@@ -6,6 +6,9 @@ const work = async () => {
     const input = getInputFromEnv()
     const event = JSON.parse(fs.readFileSync(input.eventPath, 'utf8'))
 
+    console.log('debug input', JSON.stringify(input))
+    console.log('debug event', JSON.stringify(event))
+
     await sendDiscordWebhook({
         ...input,
         event,
