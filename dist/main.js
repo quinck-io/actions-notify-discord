@@ -99,7 +99,7 @@ async function sendDiscordWebhook(params) {
   const embed = {
     title: `${projectName}/${refName}`,
     author: { name: params.username },
-    // url: `${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`,
+    url: `${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`,
     color: getColor(status),
     fields
   };
