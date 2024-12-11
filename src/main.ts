@@ -1,13 +1,11 @@
 import fs from 'fs'
 import { sendDiscordWebhook } from './discord'
-import { getInputFromEnv } from './input'
+import { actionInputSchema, eventSchema } from './schemas'
+
 
 const work = async () => {
-    const input = getInputFromEnv()
-    const event = JSON.parse(fs.readFileSync(input.eventPath, 'utf8'))
-
-    console.log('debug input', JSON.stringify(input))
-    console.log('debug event', JSON.stringify(event))
+    const input = actionInputSchema.parse(process.env)
+    const event = eventSchema.parse(JSON.parse(fs.readFileSync(input.eventPath, 'utf8')))
 
     await sendDiscordWebhook({
         ...input,
@@ -15,7 +13,8 @@ const work = async () => {
     })
 }
 
-work().catch(err => {
-    console.error(err)
-    process.exit(1)
-})
+work()
+    .catch(err => {
+        console.error(err)
+        process.exit(1)
+    })

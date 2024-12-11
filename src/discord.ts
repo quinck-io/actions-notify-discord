@@ -1,5 +1,6 @@
-import { DiscordNotificationParams } from './input'
-import { failureIcons, failureMessages, getColor, getStatusInfo, successIcons, successMessages } from './utils'
+
+import { DiscordNotificationParams, Embed, Field } from './schemas'
+import { failureIcons, failureMessages, getColor, getStatusInfo, makePayloadField, successIcons, successMessages } from './utils'
 
 const getFooterText = (params: DiscordNotificationParams) => {
     const { event } = params
@@ -11,34 +12,24 @@ Hash: ${event.head_commit.id.slice(0, 7)}
 `
 }
 
-const getTestMessage = (params: DiscordNotificationParams) => {
-    if (!params.testResultsUrl) return undefined
-    return `Test Results: [View Results](${params.testResultsUrl})`
-}
 
-const getSonarMessage = (params: DiscordNotificationParams) => {
+const getSonarFields = (params: DiscordNotificationParams): Field[] => {
     const { sonarProjectKey, sonarQualityGateStatus, refName } = params
 
-    const sonarMessage: string[] = []
+    const sonarMessage: Field[] = []
     if (sonarProjectKey) {
         const sonarUrl = `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${refName}`
-        sonarMessage.push(`SonarCloud: [View Report](${sonarUrl})`)
+        const sonarUrlField = makePayloadField('SonarCloud', sonarUrl)
+        sonarMessage.push(sonarUrlField)
     }
-    if (sonarQualityGateStatus) sonarMessage.push(`Quality Gate: *${sonarQualityGateStatus}*`)
+    if (sonarQualityGateStatus) sonarMessage.push(makePayloadField('Quality Gate', `*${sonarQualityGateStatus.toUpperCase()}*`))
 
-    if (sonarMessage.length <= 0) return undefined
+    if (sonarMessage.length <= 0) return []
 
-    return sonarMessage.join('\n')
+    return sonarMessage
 }
 
-const getJobStatusMessage = (params: DiscordNotificationParams, statusIcon: string): string => `${statusIcon} Status: *${params.status.toUpperCase()}*
-${process.env.GITHUB_WORKFLOW}: ${params.failedJob ?? process.env.GITHUB_JOB}`
 
-const stringOrDefault = (str: string | null | undefined, def: string) => (str ? str : def)
-
-/**
- * Send a Discord webhook.
- */
 export async function sendDiscordWebhook(params: DiscordNotificationParams): Promise<void> {
     const { webhookUrl, status, projectName, refName, event } = params
 
@@ -49,31 +40,33 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
             ? getStatusInfo(successIcons, successMessages(author))
             : getStatusInfo(failureIcons, failureMessages(author))
 
-    const jobStatusMessage = getJobStatusMessage(params, statusIcon)
-    const testMessage = getTestMessage(params)
-    const sonarMessage = getSonarMessage(params)
+    const sonarFields = getSonarFields(params)
 
-    const descs = [jobStatusMessage, sonarMessage, testMessage, statusMessage]
 
-    const embedDescription = descs.filter(desc => desc !== undefined).join('\n\n')
+    const jobField = makePayloadField('Status', `${statusIcon} ${params.status.toUpperCase()}`, true)
+    const workflowField = makePayloadField('Workflow', `${params.workflow}: ${params.failedJob ?? params.job}`, true)
+    const statusField = makePayloadField('Status', statusMessage)
+
+    const fields: Field[] = [jobField, workflowField, ...sonarFields, statusField]
+
+    if (params.testResultsUrl) fields.push(makePayloadField('Test Results', `[View Results](${params.testResultsUrl})`))
+
 
     const footerText = getFooterText(params)
 
-    const embed = {
+    const embed: Embed = {
         title: `${projectName}/${refName}`,
-        url: `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`,
-        description: embedDescription,
+        author: { name: params.username },
+        url: `${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`,
         color: getColor(status),
+        fields
     }
 
     if (footerText) embed['footer'] = { text: footerText }
 
-    const username = stringOrDefault(params.username, 'GitHub Actions')
-    const avatar_url = stringOrDefault(params.avatarUrl, 'https://cdn-icons-png.flaticon.com/512/25/25231.png')
-
     const body = JSON.stringify({
-        username,
-        avatar_url,
+        username: params.username,
+        avatar_url: params.avatarUrl,
         embeds: [embed],
     })
 

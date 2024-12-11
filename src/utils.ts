@@ -1,3 +1,5 @@
+import { Field } from './schemas'
+
 export const successIcons = [':unicorn:', ':man_dancing:', ':ghost:', ':dancer:', ':scream_cat:']
 
 export const failureIcons = [':fire:', 'dizzy_face', ':man_facepalming:', ':poop:', ':skull:']
@@ -44,4 +46,14 @@ export const getColor = (status: string): number => {
         default:
             return 0 // white
     }
+}
+
+/**
+ * Make a field for webhook payload
+ * @param title title of the field
+ * @param description description
+ * @returns a Field which is sendable to discord
+ */
+export const makePayloadField = (title: string, description: string, inline: boolean = false): Field => {
+    return { name: title, value: description, inline }
 }
