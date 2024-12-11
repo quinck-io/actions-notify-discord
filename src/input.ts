@@ -18,6 +18,14 @@ const envSchema = z.object({
     GITHUB_REF_NAME: z.string(),
 })
 
+const eventSchema = z.object({
+    head_commit: z.object({
+        author: z.object({ name: z.string() }),
+        timestamp: z.string(),
+        message: z.string(),
+        id: z.string(),
+    }).optional()
+}).optional()
 
 
 const actionInputSchema = inputSchema.merge(envSchema)
@@ -37,7 +45,11 @@ const actionInputSchema = inputSchema.merge(envSchema)
 
 
 export type ActionInput = z.infer<typeof actionInputSchema>
+export type GitEvent = z.infer<typeof eventSchema>
 
+export type DiscordNotificationParams = ActionInput & {
+    event: GitEvent
+}
 
 export const getInputFromEnv = (): ActionInput => {
     return actionInputSchema.parse(process.env)

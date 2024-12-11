@@ -1,18 +1,5 @@
-import { ActionInput } from './input'
+import { DiscordNotificationParams } from './input'
 import { failureIcons, failureMessages, getColor, getStatusInfo, successIcons, successMessages } from './utils'
-
-
-
-export type DiscordNotificationParams = ActionInput & {
-    event?: {
-        head_commit?: {
-            author: { name: string }
-            timestamp: string
-            message: string
-            id: string
-        }
-    }
-}
 
 const getFooterText = (params: DiscordNotificationParams) => {
     const { event } = params
