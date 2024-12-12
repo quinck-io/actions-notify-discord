@@ -108,7 +108,7 @@ async function sendDiscordWebhook(params) {
   if (footerText)
     embed["footer"] = { text: footerText };
   const body = JSON.stringify({
-    username: params.username,
+    username: "Github actions",
     avatar_url: params.avatarUrl,
     embeds: [embed]
   });
