@@ -9,7 +9,7 @@ const inputSchema = z.object({
     INPUT_SONARPROJECTKEY: z.string().optional(),
     INPUT_SONARQUALITYGATESTATUS: z.string().optional(),
     INPUT_AVATARURL: z.string().optional().default('https://cdn-icons-png.flaticon.com/512/25/25231.png'),
-    INPUT_USERNAME: z.string().default('GitHub Actions').optional(),
+    INPUT_USERNAME: z.string().optional().or(z.literal('')),
 })
 
 const envSchema = z.object({
@@ -64,8 +64,6 @@ const embedSchema = z.object({
 
 export type Embed = z.infer<typeof embedSchema>
 
-
-
 export const actionInputSchema = inputSchema.merge(envSchema)
     .transform((input) => ({
         webhookUrl: input.INPUT_WEBHOOKURL,
@@ -87,7 +85,7 @@ export const actionInputSchema = inputSchema.merge(envSchema)
     }))
 
 
-export type ActionInput = z.input<typeof actionInputSchema>
+export type ActionInput = z.infer<typeof actionInputSchema>
 export type GitEvent = z.infer<typeof eventSchema>
 
 export type DiscordNotificationParams = ActionInput & {
