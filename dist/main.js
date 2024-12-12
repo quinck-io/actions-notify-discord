@@ -86,6 +86,7 @@ var getSonarFields = (params) => {
 };
 async function sendDiscordWebhook(params) {
   const { webhookUrl, status, projectName, refName, event } = params;
+  console.log("params", params);
   const author = event?.head_commit?.author?.name ?? "Unknown";
   const { statusIcon, statusMessage } = status === "success" ? getStatusInfo(successIcons, successMessages(author)) : getStatusInfo(failureIcons, failureMessages(author));
   const sonarFields = getSonarFields(params);
@@ -96,15 +97,14 @@ async function sendDiscordWebhook(params) {
   if (params.testResultsUrl)
     fields.push(makePayloadField("Test Results", `[View Results](${params.testResultsUrl})`));
   const footerText = getFooterText(params);
-  console.log(`${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`);
   const embed = {
     title: `${projectName}/${refName}`,
     author: { name: params.username },
     url: `${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`,
-    // url: `${params.serverUrl}`,
     color: getColor(status),
     fields
   };
+  console.log("embed", embed);
   if (footerText)
     embed["footer"] = { text: footerText };
   const body = JSON.stringify({
@@ -4176,7 +4176,7 @@ var inputSchema = z.object({
   INPUT_SONARPROJECTKEY: z.string().optional(),
   INPUT_SONARQUALITYGATESTATUS: z.string().optional(),
   INPUT_AVATARURL: z.string().optional().default("https://cdn-icons-png.flaticon.com/512/25/25231.png"),
-  INPUT_USERNAME: z.string().optional().default("GitHub Actions")
+  INPUT_USERNAME: z.string().optional().default("Github Action")
 });
 var envSchema = z.object({
   GITHUB_EVENT_PATH: z.string(),
