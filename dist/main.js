@@ -96,10 +96,12 @@ async function sendDiscordWebhook(params) {
   if (params.testResultsUrl)
     fields.push(makePayloadField("Test Results", `[View Results](${params.testResultsUrl})`));
   const footerText = getFooterText(params);
+  console.log(`${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`);
   const embed = {
     title: `${projectName}/${refName}`,
     author: { name: params.username },
     url: `${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`,
+    // url: `${params.serverUrl}`,
     color: getColor(status),
     fields
   };
@@ -116,7 +118,7 @@ async function sendDiscordWebhook(params) {
       "Content-Type": "application/json"
     },
     body
-  });
+  }).then((r) => r.json()).then(console.log);
 }
 
 // node_modules/zod/lib/index.mjs

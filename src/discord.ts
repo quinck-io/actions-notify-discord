@@ -33,6 +33,8 @@ const getSonarFields = (params: DiscordNotificationParams): Field[] => {
 export async function sendDiscordWebhook(params: DiscordNotificationParams): Promise<void> {
     const { webhookUrl, status, projectName, refName, event } = params
 
+    console.log('params', params)
+
     const author = event?.head_commit?.author?.name ?? 'Unknown'
 
     const { statusIcon, statusMessage } =
@@ -41,7 +43,6 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
             : getStatusInfo(failureIcons, failureMessages(author))
 
     const sonarFields = getSonarFields(params)
-
 
     const jobField = makePayloadField('Status', `${statusIcon} ${params.status.toUpperCase()}`, true)
     const workflowField = makePayloadField('Workflow', `${params.workflow}: ${params.failedJob ?? params.job}`, true)
@@ -62,6 +63,9 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
         fields
     }
 
+
+    console.log('embed', embed)
+
     if (footerText) embed['footer'] = { text: footerText }
 
     const body = JSON.stringify({
@@ -76,5 +80,6 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
             'Content-Type': 'application/json',
         },
         body,
-    })
+    }).then(r => r.json())
+        .then(console.log)
 }
