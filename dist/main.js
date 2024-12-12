@@ -86,7 +86,6 @@ var getSonarFields = (params) => {
 };
 async function sendDiscordWebhook(params) {
   const { webhookUrl, status, projectName, refName, event } = params;
-  console.log("params", params);
   const author = event?.head_commit?.author?.name ?? "Unknown";
   const { statusIcon, statusMessage } = status === "success" ? getStatusInfo(successIcons, successMessages(author)) : getStatusInfo(failureIcons, failureMessages(author));
   const sonarFields = getSonarFields(params);
@@ -104,7 +103,6 @@ async function sendDiscordWebhook(params) {
     color: getColor(status),
     fields
   };
-  console.log("embed", embed);
   if (footerText)
     embed["footer"] = { text: footerText };
   const body = JSON.stringify({

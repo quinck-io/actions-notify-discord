@@ -33,8 +33,6 @@ const getSonarFields = (params: DiscordNotificationParams): Field[] => {
 export async function sendDiscordWebhook(params: DiscordNotificationParams): Promise<void> {
     const { webhookUrl, status, projectName, refName, event } = params
 
-    console.log('params', params)
-
     const author = event?.head_commit?.author?.name ?? 'Unknown'
 
     const { statusIcon, statusMessage } =
@@ -62,9 +60,6 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
         color: getColor(status),
         fields
     }
-
-
-    console.log('embed', embed)
 
     if (footerText) embed['footer'] = { text: footerText }
 
