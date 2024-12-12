@@ -80,6 +80,5 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
             'Content-Type': 'application/json',
         },
         body,
-    }).then(r => r.json())
-        .then(console.log)
+    })
 }

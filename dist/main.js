@@ -118,7 +118,7 @@ async function sendDiscordWebhook(params) {
       "Content-Type": "application/json"
     },
     body
-  }).then((r) => r.json()).then(console.log);
+  });
 }
 
 // node_modules/zod/lib/index.mjs
@@ -4167,6 +4167,8 @@ var z = /* @__PURE__ */ Object.freeze({
 });
 
 // src/schemas.ts
+var DEFAULT_USERNAME = "Github Action";
+var DEFAULT_AVATARURL = "https://cdn-icons-png.flaticon.com/512/25/25231.png";
 var inputSchema = z.object({
   INPUT_WEBHOOKURL: z.string(),
   INPUT_STATUS: z.enum(["failure", "success", "skipped"]),
@@ -4175,8 +4177,8 @@ var inputSchema = z.object({
   INPUT_FAILEDJOB: z.string().optional(),
   INPUT_SONARPROJECTKEY: z.string().optional(),
   INPUT_SONARQUALITYGATESTATUS: z.string().optional(),
-  INPUT_AVATARURL: z.string().optional().default("https://cdn-icons-png.flaticon.com/512/25/25231.png"),
-  INPUT_USERNAME: z.string().optional().default("Github Action")
+  INPUT_AVATARURL: z.string().optional().default(DEFAULT_AVATARURL).transform((avatarUrl) => avatarUrl === "" ? DEFAULT_AVATARURL : avatarUrl),
+  INPUT_USERNAME: z.string().optional().default(DEFAULT_USERNAME).transform((username) => username === "" ? DEFAULT_USERNAME : username)
 });
 var envSchema = z.object({
   GITHUB_EVENT_PATH: z.string(),

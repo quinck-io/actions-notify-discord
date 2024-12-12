@@ -1,5 +1,8 @@
 import { z } from 'zod'
 
+const DEFAULT_USERNAME = 'Github Action'
+const DEFAULT_AVATARURL = 'https://cdn-icons-png.flaticon.com/512/25/25231.png'
+
 const inputSchema = z.object({
     INPUT_WEBHOOKURL: z.string(),
     INPUT_STATUS: z.enum(['failure', 'success', 'skipped']),
@@ -8,8 +11,8 @@ const inputSchema = z.object({
     INPUT_FAILEDJOB: z.string().optional(),
     INPUT_SONARPROJECTKEY: z.string().optional(),
     INPUT_SONARQUALITYGATESTATUS: z.string().optional(),
-    INPUT_AVATARURL: z.string().optional().default('https://cdn-icons-png.flaticon.com/512/25/25231.png'),
-    INPUT_USERNAME: z.string().optional().default('Github Action')
+    INPUT_AVATARURL: z.string().optional().default(DEFAULT_AVATARURL).transform(avatarUrl => avatarUrl === '' ? DEFAULT_AVATARURL : avatarUrl),
+    INPUT_USERNAME: z.string().optional().default(DEFAULT_USERNAME).transform(username => username === '' ? DEFAULT_USERNAME : username)
 })
 
 const envSchema = z.object({
