@@ -1,6 +1,6 @@
 {
     "name": "actions-notify-discord",
-    "version": "2.2.4",
+    "version": "2.2.5",
     "main": "dist/index.js",
     "scripts": {
         "ts": "esr",
