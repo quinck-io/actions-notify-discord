@@ -71,10 +71,11 @@ Hash: ${event.head_commit.id.slice(0, 7)}
 `;
 };
 var getSonarFields = (params) => {
-  const { sonarProjectKey, sonarQualityGateStatus, refName } = params;
+  const { sonarProjectKey, sonarQualityGateStatus, event } = params;
+  const branch = getBranch(event);
   const sonarMessage = [];
   if (sonarProjectKey) {
-    const sonarUrl = `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${refName}`;
+    const sonarUrl = `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${branch}`;
     const sonarUrlField = makePayloadField("SonarCloud", sonarUrl);
     sonarMessage.push(sonarUrlField);
   }
@@ -84,9 +85,15 @@ var getSonarFields = (params) => {
     return [];
   return sonarMessage;
 };
+var getBranch = (event) => {
+  if (event.pull_request)
+    return event.pull_request.head.ref;
+  return event.ref;
+};
 async function sendDiscordWebhook(params) {
-  const { webhookUrl, status, projectName, refName, event } = params;
-  const author = event?.head_commit?.author?.name ?? "Unknown";
+  const { webhookUrl, status, projectName, event } = params;
+  const author = event.sender.login;
+  const branch = getBranch(event);
   const { statusIcon, statusMessage } = status === "success" ? getStatusInfo(successIcons, successMessages(author)) : getStatusInfo(failureIcons, failureMessages(author));
   const sonarFields = getSonarFields(params);
   const jobField = makePayloadField("Status", `${statusIcon} ${params.status.toUpperCase()}`, true);
@@ -97,8 +104,8 @@ async function sendDiscordWebhook(params) {
     fields.push(makePayloadField("Test Results", `[View Results](${params.testResultsUrl})`));
   const footerText = getFooterText(params);
   const embed = {
-    title: `${projectName}/${refName}`,
-    author: { name: params.username },
+    title: `${projectName} branch: ${branch}`,
+    author: { name: author },
     url: `${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`,
     color: getColor(status),
     fields
@@ -4180,21 +4187,12 @@ var inputSchema = z.object({
 });
 var envSchema = z.object({
   GITHUB_EVENT_PATH: z.string(),
-  GITHUB_REF_NAME: z.string(),
   GITHUB_JOB: z.string(),
   GITHUB_WORKFLOW: z.string(),
   GITHUB_REPOSITORY: z.string(),
   GITHUB_SERVER_URL: z.string(),
   GITHUB_RUN_ID: z.string()
 });
-var eventSchema = z.object({
-  head_commit: z.object({
-    author: z.object({ name: z.string().default("Unknown") }),
-    timestamp: z.string(),
-    message: z.string(),
-    id: z.string()
-  }).optional()
-}).optional();
 var fieldSchema = z.object({
   name: z.string(),
   value: z.string(),
@@ -4233,13 +4231,38 @@ var actionInputSchema = inputSchema.merge(envSchema).transform((input) => ({
   avatarUrl: input.INPUT_AVATARURL,
   username: input.INPUT_USERNAME,
   eventPath: input.GITHUB_EVENT_PATH,
-  refName: input.GITHUB_REF_NAME,
   job: input.GITHUB_JOB,
   workflow: input.GITHUB_WORKFLOW,
   repository: input.GITHUB_REPOSITORY,
   serverUrl: input.GITHUB_SERVER_URL,
   runId: input.GITHUB_RUN_ID
 }));
+
+// src/schemas/git.ts
+var userSchema = z.object({
+  avatar_url: z.string().optional(),
+  login: z.string(),
+  url: z.string().url()
+});
+var pullHeadSchema = z.object({
+  label: z.string(),
+  ref: z.string(),
+  sha: z.string()
+});
+var pullRequestSchema = z.object({
+  head: pullHeadSchema
+});
+var headCommitSchema = z.object({
+  timestamp: z.string(),
+  message: z.string(),
+  id: z.string()
+});
+var eventSchema = z.object({
+  head_commit: headCommitSchema.optional(),
+  pull_request: pullRequestSchema.optional(),
+  sender: userSchema,
+  ref: z.string().optional().transform((str) => str?.replace("refs/heads/", ""))
+});
 
 // src/main.ts
 var work = async () => {
