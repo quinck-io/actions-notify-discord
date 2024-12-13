@@ -1,6 +1,7 @@
 import fs from 'fs'
 import { sendDiscordWebhook } from './discord'
-import { actionInputSchema, eventSchema } from './schemas'
+import { actionInputSchema } from './schemas'
+import { eventSchema } from './schemas/git'
 
 
 const work = async () => {

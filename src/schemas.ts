@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { GitEvent } from './schemas/git'
 
 const DEFAULT_USERNAME = 'Github Action'
 const DEFAULT_AVATARURL = 'https://cdn-icons-png.flaticon.com/512/25/25231.png'
@@ -15,9 +16,9 @@ const inputSchema = z.object({
     INPUT_USERNAME: z.string().optional().default(DEFAULT_USERNAME).transform(username => username === '' ? DEFAULT_USERNAME : username)
 })
 
+
 const envSchema = z.object({
     GITHUB_EVENT_PATH: z.string(),
-    GITHUB_REF_NAME: z.string(),
     GITHUB_JOB: z.string(),
     GITHUB_WORKFLOW: z.string(),
     GITHUB_REPOSITORY: z.string(),
@@ -25,14 +26,6 @@ const envSchema = z.object({
     GITHUB_RUN_ID: z.string(),
 })
 
-export const eventSchema = z.object({
-    head_commit: z.object({
-        author: z.object({ name: z.string().default('Unknown') }),
-        timestamp: z.string(),
-        message: z.string(),
-        id: z.string(),
-    }).optional()
-}).optional()
 
 const fieldSchema = z.object({
     name: z.string(),
@@ -79,7 +72,6 @@ export const actionInputSchema = inputSchema.merge(envSchema)
         avatarUrl: input.INPUT_AVATARURL,
         username: input.INPUT_USERNAME,
         eventPath: input.GITHUB_EVENT_PATH,
-        refName: input.GITHUB_REF_NAME,
         job: input.GITHUB_JOB,
         workflow: input.GITHUB_WORKFLOW,
         repository: input.GITHUB_REPOSITORY,
@@ -89,7 +81,7 @@ export const actionInputSchema = inputSchema.merge(envSchema)
 
 
 export type ActionInput = z.infer<typeof actionInputSchema>
-export type GitEvent = z.infer<typeof eventSchema>
+
 
 export type DiscordNotificationParams = ActionInput & {
     event: GitEvent

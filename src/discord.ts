@@ -1,5 +1,6 @@
 
 import { DiscordNotificationParams, Embed, Field } from './schemas'
+import { GitEvent } from './schemas/git'
 import { failureIcons, failureMessages, getColor, getStatusInfo, makePayloadField, successIcons, successMessages } from './utils'
 
 const getFooterText = (params: DiscordNotificationParams) => {
@@ -14,11 +15,12 @@ Hash: ${event.head_commit.id.slice(0, 7)}
 
 
 const getSonarFields = (params: DiscordNotificationParams): Field[] => {
-    const { sonarProjectKey, sonarQualityGateStatus, refName } = params
+    const { sonarProjectKey, sonarQualityGateStatus, event } = params
+    const branch = getBranch(event)
 
     const sonarMessage: Field[] = []
     if (sonarProjectKey) {
-        const sonarUrl = `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${refName}`
+        const sonarUrl = `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${branch}`
         const sonarUrlField = makePayloadField('SonarCloud', sonarUrl)
         sonarMessage.push(sonarUrlField)
     }
@@ -29,11 +31,18 @@ const getSonarFields = (params: DiscordNotificationParams): Field[] => {
     return sonarMessage
 }
 
+const getBranch = (event: GitEvent): string => {
+    if (event.pull_request)
+        return event.pull_request.head.ref
+    return event.ref!
+}
+
 
 export async function sendDiscordWebhook(params: DiscordNotificationParams): Promise<void> {
-    const { webhookUrl, status, projectName, refName, event } = params
+    const { webhookUrl, status, projectName, event } = params
 
-    const author = event?.head_commit?.author?.name ?? 'Unknown'
+    const author = event.sender.login
+    const branch = getBranch(event)
 
     const { statusIcon, statusMessage } =
         status === 'success'
@@ -54,8 +63,8 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
     const footerText = getFooterText(params)
 
     const embed: Embed = {
-        title: `${projectName}/${refName}`,
-        author: { name: params.username },
+        title: `${projectName} branch: ${branch}`,
+        author: { name: author },
         url: `${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`,
         color: getColor(status),
         fields
