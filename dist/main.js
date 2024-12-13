@@ -4244,7 +4244,9 @@ var actionInputSchema = inputSchema.merge(envSchema).transform((input) => ({
 // src/main.ts
 var work = async () => {
   const input = actionInputSchema.parse(process.env);
-  const event = eventSchema.parse(JSON.parse(import_fs.default.readFileSync(input.eventPath, "utf8")));
+  const rawEvent = import_fs.default.readFileSync(input.eventPath, "utf8");
+  console.log("rawEvent", rawEvent);
+  const event = eventSchema.parse(JSON.parse(rawEvent));
   await sendDiscordWebhook({
     ...input,
     event
