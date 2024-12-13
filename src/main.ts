@@ -5,7 +5,9 @@ import { actionInputSchema, eventSchema } from './schemas'
 
 const work = async () => {
     const input = actionInputSchema.parse(process.env)
-    const event = eventSchema.parse(JSON.parse(fs.readFileSync(input.eventPath, 'utf8')))
+    const rawEvent = fs.readFileSync(input.eventPath, 'utf8')
+    console.log('rawEvent', rawEvent)
+    const event = eventSchema.parse(JSON.parse(rawEvent))
 
     await sendDiscordWebhook({
         ...input,
