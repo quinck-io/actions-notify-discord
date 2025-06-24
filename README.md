@@ -24,6 +24,9 @@ This GitHub Action, named Discord Notifier, allows you to send message notificat
       # [Optional] SonarCloud project key
       sonarProjectKey: ''
 
+      # [Optional] SonarCloud url
+      sonarUrl: ''
+
       # [Optional] Status of the SonarCloud Quality Gate
       sonarQualityGateStatus: ''
 

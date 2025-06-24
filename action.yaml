@@ -18,6 +18,9 @@ inputs:
     sonarProjectKey:
         description: 'SonarCloud project key'
         required: false
+    sonarUrl:
+        description: 'SonarCloud url'
+        required: false
     sonarQualityGateStatus:
         description: 'Status of the SonarCloud Quality Gate'
         required: false

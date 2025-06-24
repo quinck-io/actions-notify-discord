@@ -1,7 +1,14 @@
-
 import { DiscordNotificationParams, Embed, Field } from './schemas'
 import { GitEvent } from './schemas/git'
-import { failureIcons, failureMessages, getColor, getStatusInfo, makePayloadField, successIcons, successMessages } from './utils'
+import {
+    failureIcons,
+    failureMessages,
+    getColor,
+    getStatusInfo,
+    makePayloadField,
+    successIcons,
+    successMessages,
+} from './utils'
 
 const getFooterText = (params: DiscordNotificationParams) => {
     const { event } = params
@@ -13,18 +20,26 @@ Hash: ${event.head_commit.id.slice(0, 7)}
 `
 }
 
-
 const getSonarFields = (params: DiscordNotificationParams): Field[] => {
-    const { sonarProjectKey, sonarQualityGateStatus, event } = params
-    const branch = getBranch(event)
+    const { sonarUrl, sonarProjectKey, sonarQualityGateStatus } = params
+
+    const sonarUrlComputed = (() => {
+        if (sonarUrl) {
+            return sonarUrl
+        }
+        if (sonarProjectKey) {
+            const branch = getBranch(params.event)
+            return `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${branch}`
+        }
+    })()
 
     const sonarMessage: Field[] = []
-    if (sonarProjectKey) {
-        const sonarUrl = `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${branch}`
-        const sonarUrlField = makePayloadField('SonarCloud', sonarUrl)
+    if (sonarUrlComputed) {
+        const sonarUrlField = makePayloadField('SonarCloud', sonarUrlComputed)
         sonarMessage.push(sonarUrlField)
     }
-    if (sonarQualityGateStatus) sonarMessage.push(makePayloadField('Quality Gate', `*${sonarQualityGateStatus.toUpperCase()}*`))
+    if (sonarQualityGateStatus)
+        sonarMessage.push(makePayloadField('Quality Gate', `*${sonarQualityGateStatus.toUpperCase()}*`))
 
     if (sonarMessage.length <= 0) return []
 
@@ -32,11 +47,9 @@ const getSonarFields = (params: DiscordNotificationParams): Field[] => {
 }
 
 const getBranch = (event: GitEvent): string => {
-    if (event.pull_request)
-        return event.pull_request.head.ref
+    if (event.pull_request) return event.pull_request.head.ref
     return event.ref!
 }
-
 
 export async function sendDiscordWebhook(params: DiscordNotificationParams): Promise<void> {
     const { webhookUrl, status, projectName, event } = params
@@ -59,7 +72,6 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
 
     if (params.testResultsUrl) fields.push(makePayloadField('Test Results', `[View Results](${params.testResultsUrl})`))
 
-
     const footerText = getFooterText(params)
 
     const embed: Embed = {
@@ -67,7 +79,7 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
         author: { name: author },
         url: `${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`,
         color: getColor(status),
-        fields
+        fields,
     }
 
     if (footerText) embed['footer'] = { text: footerText }

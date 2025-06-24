@@ -71,12 +71,19 @@ Hash: ${event.head_commit.id.slice(0, 7)}
 `;
 };
 var getSonarFields = (params) => {
-  const { sonarProjectKey, sonarQualityGateStatus, event } = params;
-  const branch = getBranch(event);
+  const { sonarUrl, sonarProjectKey, sonarQualityGateStatus } = params;
+  const sonarUrlComputed = (() => {
+    if (sonarUrl) {
+      return sonarUrl;
+    }
+    if (sonarProjectKey) {
+      const branch = getBranch(params.event);
+      return `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${branch}`;
+    }
+  })();
   const sonarMessage = [];
-  if (sonarProjectKey) {
-    const sonarUrl = `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${branch}`;
-    const sonarUrlField = makePayloadField("SonarCloud", sonarUrl);
+  if (sonarUrlComputed) {
+    const sonarUrlField = makePayloadField("SonarCloud", sonarUrlComputed);
     sonarMessage.push(sonarUrlField);
   }
   if (sonarQualityGateStatus)
@@ -4181,6 +4188,7 @@ var inputSchema = z.object({
   INPUT_TESTRESULTSURL: z.string().optional(),
   INPUT_FAILEDJOB: z.string().optional(),
   INPUT_SONARPROJECTKEY: z.string().optional(),
+  INPUT_SONARURL: z.string().optional(),
   INPUT_SONARQUALITYGATESTATUS: z.string().optional(),
   INPUT_AVATARURL: z.string().optional().default(DEFAULT_AVATARURL).transform((avatarUrl) => avatarUrl === "" ? DEFAULT_AVATARURL : avatarUrl),
   INPUT_USERNAME: z.string().optional().default(DEFAULT_USERNAME).transform((username) => username === "" ? DEFAULT_USERNAME : username)
@@ -4226,8 +4234,6 @@ var actionInputSchema = inputSchema.merge(envSchema).transform((input) => ({
   projectName: input.INPUT_PROJECTNAME,
   testResultsUrl: input.INPUT_TESTRESULTSURL,
   failedJob: input.INPUT_FAILEDJOB,
-  sonarProjectKey: input.INPUT_SONARPROJECTKEY,
-  sonarQualityGateStatus: input.INPUT_SONARQUALITYGATESTATUS,
   avatarUrl: input.INPUT_AVATARURL,
   username: input.INPUT_USERNAME,
   eventPath: input.GITHUB_EVENT_PATH,
@@ -4235,7 +4241,11 @@ var actionInputSchema = inputSchema.merge(envSchema).transform((input) => ({
   workflow: input.GITHUB_WORKFLOW,
   repository: input.GITHUB_REPOSITORY,
   serverUrl: input.GITHUB_SERVER_URL,
-  runId: input.GITHUB_RUN_ID
+  runId: input.GITHUB_RUN_ID,
+  // Sonar
+  sonarUrl: input.INPUT_SONARURL,
+  sonarProjectKey: input.INPUT_SONARPROJECTKEY,
+  sonarQualityGateStatus: input.INPUT_SONARQUALITYGATESTATUS
 }));
 
 // src/schemas/git.ts
