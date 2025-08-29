@@ -24,9 +24,197 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 // src/main.ts
 var import_fs = __toESM(require("fs"));
 
+// node_modules/ts-pattern/dist/index.js
+var t = Symbol.for("@ts-pattern/matcher");
+var e = Symbol.for("@ts-pattern/isVariadic");
+var n = "@ts-pattern/anonymous-select-key";
+var r = (t2) => Boolean(t2 && "object" == typeof t2);
+var i = (e2) => e2 && !!e2[t];
+var o = (n2, s2, c2) => {
+  if (i(n2)) {
+    const e2 = n2[t](), { matched: r2, selections: i2 } = e2.match(s2);
+    return r2 && i2 && Object.keys(i2).forEach((t2) => c2(t2, i2[t2])), r2;
+  }
+  if (r(n2)) {
+    if (!r(s2))
+      return false;
+    if (Array.isArray(n2)) {
+      if (!Array.isArray(s2))
+        return false;
+      let t2 = [], r2 = [], a = [];
+      for (const o2 of n2.keys()) {
+        const s3 = n2[o2];
+        i(s3) && s3[e] ? a.push(s3) : a.length ? r2.push(s3) : t2.push(s3);
+      }
+      if (a.length) {
+        if (a.length > 1)
+          throw new Error("Pattern error: Using `...P.array(...)` several times in a single pattern is not allowed.");
+        if (s2.length < t2.length + r2.length)
+          return false;
+        const e2 = s2.slice(0, t2.length), n3 = 0 === r2.length ? [] : s2.slice(-r2.length), i2 = s2.slice(t2.length, 0 === r2.length ? Infinity : -r2.length);
+        return t2.every((t3, n4) => o(t3, e2[n4], c2)) && r2.every((t3, e3) => o(t3, n3[e3], c2)) && (0 === a.length || o(a[0], i2, c2));
+      }
+      return n2.length === s2.length && n2.every((t3, e2) => o(t3, s2[e2], c2));
+    }
+    return Reflect.ownKeys(n2).every((e2) => {
+      const r2 = n2[e2];
+      return (e2 in s2 || i(a = r2) && "optional" === a[t]().matcherType) && o(r2, s2[e2], c2);
+      var a;
+    });
+  }
+  return Object.is(s2, n2);
+};
+var s = (e2) => {
+  var n2, o2, a;
+  return r(e2) ? i(e2) ? null != (n2 = null == (o2 = (a = e2[t]()).getSelectionKeys) ? void 0 : o2.call(a)) ? n2 : [] : Array.isArray(e2) ? c(e2, s) : c(Object.values(e2), s) : [];
+};
+var c = (t2, e2) => t2.reduce((t3, n2) => t3.concat(e2(n2)), []);
+function u(t2) {
+  return Object.assign(t2, { optional: () => l(t2), and: (e2) => m(t2, e2), or: (e2) => d(t2, e2), select: (e2) => void 0 === e2 ? y(t2) : y(e2, t2) });
+}
+function l(e2) {
+  return u({ [t]: () => ({ match: (t2) => {
+    let n2 = {};
+    const r2 = (t3, e3) => {
+      n2[t3] = e3;
+    };
+    return void 0 === t2 ? (s(e2).forEach((t3) => r2(t3, void 0)), { matched: true, selections: n2 }) : { matched: o(e2, t2, r2), selections: n2 };
+  }, getSelectionKeys: () => s(e2), matcherType: "optional" }) });
+}
+function m(...e2) {
+  return u({ [t]: () => ({ match: (t2) => {
+    let n2 = {};
+    const r2 = (t3, e3) => {
+      n2[t3] = e3;
+    };
+    return { matched: e2.every((e3) => o(e3, t2, r2)), selections: n2 };
+  }, getSelectionKeys: () => c(e2, s), matcherType: "and" }) });
+}
+function d(...e2) {
+  return u({ [t]: () => ({ match: (t2) => {
+    let n2 = {};
+    const r2 = (t3, e3) => {
+      n2[t3] = e3;
+    };
+    return c(e2, s).forEach((t3) => r2(t3, void 0)), { matched: e2.some((e3) => o(e3, t2, r2)), selections: n2 };
+  }, getSelectionKeys: () => c(e2, s), matcherType: "or" }) });
+}
+function p(e2) {
+  return { [t]: () => ({ match: (t2) => ({ matched: Boolean(e2(t2)) }) }) };
+}
+function y(...e2) {
+  const r2 = "string" == typeof e2[0] ? e2[0] : void 0, i2 = 2 === e2.length ? e2[1] : "string" == typeof e2[0] ? void 0 : e2[0];
+  return u({ [t]: () => ({ match: (t2) => {
+    let e3 = { [null != r2 ? r2 : n]: t2 };
+    return { matched: void 0 === i2 || o(i2, t2, (t3, n2) => {
+      e3[t3] = n2;
+    }), selections: e3 };
+  }, getSelectionKeys: () => [null != r2 ? r2 : n].concat(void 0 === i2 ? [] : s(i2)) }) });
+}
+function v(t2) {
+  return "number" == typeof t2;
+}
+function b(t2) {
+  return "string" == typeof t2;
+}
+function w(t2) {
+  return "bigint" == typeof t2;
+}
+var S = u(p(function(t2) {
+  return true;
+}));
+var j = (t2) => Object.assign(u(t2), { startsWith: (e2) => {
+  return j(m(t2, (n2 = e2, p((t3) => b(t3) && t3.startsWith(n2)))));
+  var n2;
+}, endsWith: (e2) => {
+  return j(m(t2, (n2 = e2, p((t3) => b(t3) && t3.endsWith(n2)))));
+  var n2;
+}, minLength: (e2) => j(m(t2, ((t3) => p((e3) => b(e3) && e3.length >= t3))(e2))), length: (e2) => j(m(t2, ((t3) => p((e3) => b(e3) && e3.length === t3))(e2))), maxLength: (e2) => j(m(t2, ((t3) => p((e3) => b(e3) && e3.length <= t3))(e2))), includes: (e2) => {
+  return j(m(t2, (n2 = e2, p((t3) => b(t3) && t3.includes(n2)))));
+  var n2;
+}, regex: (e2) => {
+  return j(m(t2, (n2 = e2, p((t3) => b(t3) && Boolean(t3.match(n2))))));
+  var n2;
+} });
+var K = j(p(b));
+var x = (t2) => Object.assign(u(t2), { between: (e2, n2) => x(m(t2, ((t3, e3) => p((n3) => v(n3) && t3 <= n3 && e3 >= n3))(e2, n2))), lt: (e2) => x(m(t2, ((t3) => p((e3) => v(e3) && e3 < t3))(e2))), gt: (e2) => x(m(t2, ((t3) => p((e3) => v(e3) && e3 > t3))(e2))), lte: (e2) => x(m(t2, ((t3) => p((e3) => v(e3) && e3 <= t3))(e2))), gte: (e2) => x(m(t2, ((t3) => p((e3) => v(e3) && e3 >= t3))(e2))), int: () => x(m(t2, p((t3) => v(t3) && Number.isInteger(t3)))), finite: () => x(m(t2, p((t3) => v(t3) && Number.isFinite(t3)))), positive: () => x(m(t2, p((t3) => v(t3) && t3 > 0))), negative: () => x(m(t2, p((t3) => v(t3) && t3 < 0))) });
+var E = x(p(v));
+var A = (t2) => Object.assign(u(t2), { between: (e2, n2) => A(m(t2, ((t3, e3) => p((n3) => w(n3) && t3 <= n3 && e3 >= n3))(e2, n2))), lt: (e2) => A(m(t2, ((t3) => p((e3) => w(e3) && e3 < t3))(e2))), gt: (e2) => A(m(t2, ((t3) => p((e3) => w(e3) && e3 > t3))(e2))), lte: (e2) => A(m(t2, ((t3) => p((e3) => w(e3) && e3 <= t3))(e2))), gte: (e2) => A(m(t2, ((t3) => p((e3) => w(e3) && e3 >= t3))(e2))), positive: () => A(m(t2, p((t3) => w(t3) && t3 > 0))), negative: () => A(m(t2, p((t3) => w(t3) && t3 < 0))) });
+var P = A(p(w));
+var T = u(p(function(t2) {
+  return "boolean" == typeof t2;
+}));
+var B = u(p(function(t2) {
+  return "symbol" == typeof t2;
+}));
+var _ = u(p(function(t2) {
+  return null == t2;
+}));
+var k = u(p(function(t2) {
+  return null != t2;
+}));
+var W = class extends Error {
+  constructor(t2) {
+    let e2;
+    try {
+      e2 = JSON.stringify(t2);
+    } catch (n2) {
+      e2 = t2;
+    }
+    super(`Pattern matching error: no pattern matches value ${e2}`), this.input = void 0, this.input = t2;
+  }
+};
+var $ = { matched: false, value: void 0 };
+function z(t2) {
+  return new I(t2, $);
+}
+var I = class _I {
+  constructor(t2, e2) {
+    this.input = void 0, this.state = void 0, this.input = t2, this.state = e2;
+  }
+  with(...t2) {
+    if (this.state.matched)
+      return this;
+    const e2 = t2[t2.length - 1], r2 = [t2[0]];
+    let i2;
+    3 === t2.length && "function" == typeof t2[1] ? i2 = t2[1] : t2.length > 2 && r2.push(...t2.slice(1, t2.length - 1));
+    let s2 = false, c2 = {};
+    const a = (t3, e3) => {
+      s2 = true, c2[t3] = e3;
+    }, u2 = !r2.some((t3) => o(t3, this.input, a)) || i2 && !Boolean(i2(this.input)) ? $ : { matched: true, value: e2(s2 ? n in c2 ? c2[n] : c2 : this.input, this.input) };
+    return new _I(this.input, u2);
+  }
+  when(t2, e2) {
+    if (this.state.matched)
+      return this;
+    const n2 = Boolean(t2(this.input));
+    return new _I(this.input, n2 ? { matched: true, value: e2(this.input, this.input) } : $);
+  }
+  otherwise(t2) {
+    return this.state.matched ? this.state.value : t2(this.input);
+  }
+  exhaustive(t2 = L) {
+    return this.state.matched ? this.state.value : t2(this.input);
+  }
+  run() {
+    return this.exhaustive();
+  }
+  returnType() {
+    return this;
+  }
+  narrow() {
+    return this;
+  }
+};
+function L(t2) {
+  throw new W(t2);
+}
+
 // src/utils.ts
 var successIcons = [":unicorn:", ":man_dancing:", ":ghost:", ":dancer:", ":scream_cat:"];
 var failureIcons = [":fire:", "dizzy_face", ":man_facepalming:", ":poop:", ":skull:"];
+var cancelledIcons = [":stop_sign:", ":warning:", ":construction:", ":x:", ":no_entry_sign:"];
+var skippedIcons = [":fast_forward:", ":next_track_button:", ":arrow_right:", ":zzz:", ":sleeping:"];
 var successMessages = (author) => [
   `:champagne::champagne:Congrats **${author}**, you made it. :sunglasses::champagne::champagne:`,
   `:moyai::moyai:Mah man **${author}**, you made it. :women_with_bunny_ears_partying::moyai::moyai:`,
@@ -41,20 +229,25 @@ var failureMessages = (author) => [
   `:face_vomiting::face_vomiting:*${author}*, This commit made my mom cry!:face_vomiting::face_vomiting:`,
   `:facepalm::facepalm:${author}, Come on, at least offer a coffee before making such a commit!:facepalm::facepalm:`
 ];
+var cancelledMessages = (author) => [
+  `:stop_sign: **${author}**, the workflow was cancelled.`,
+  `:warning: **${author}**, someone stopped the workflow.`,
+  `:construction: **${author}**, workflow cancelled - maybe next time!`,
+  `:x: **${author}**, workflow was interrupted.`,
+  `:no_entry_sign: **${author}**, workflow cancelled before completion.`
+];
+var skippedMessages = (author) => [
+  `:fast_forward: **${author}**, workflow was skipped.`,
+  `:next_track_button: **${author}**, skipping this one!`,
+  `:arrow_right: **${author}**, workflow skipped - moving on.`,
+  `:zzz: **${author}**, workflow took a nap (skipped).`,
+  `:sleeping: **${author}**, nothing to do here (skipped).`
+];
 var getStatusInfo = (icons, messages) => ({
   statusIcon: icons[Math.floor(Math.random() * icons.length)],
   statusMessage: messages[Math.floor(Math.random() * messages.length)]
 });
-var getColor = (status) => {
-  switch (status) {
-    case "success":
-      return 3066993;
-    case "failure":
-      return 15158332;
-    default:
-      return 0;
-  }
-};
+var getColor = (status) => z(status).with("success", () => 3066993).with("failure", () => 15158332).with("cancelled", () => 16753920).with("skipped", () => 10197915).exhaustive();
 var makePayloadField = (title, description, inline = false) => {
   return { name: title, value: description, inline };
 };
@@ -101,7 +294,7 @@ async function sendDiscordWebhook(params) {
   const { webhookUrl, status, projectName, event } = params;
   const author = event.sender.login;
   const branch = getBranch(event);
-  const { statusIcon, statusMessage } = status === "success" ? getStatusInfo(successIcons, successMessages(author)) : getStatusInfo(failureIcons, failureMessages(author));
+  const { statusIcon, statusMessage } = z(status).with("success", () => getStatusInfo(successIcons, successMessages(author))).with("failure", () => getStatusInfo(failureIcons, failureMessages(author))).with("cancelled", () => getStatusInfo(cancelledIcons, cancelledMessages(author))).with("skipped", () => getStatusInfo(skippedIcons, skippedMessages(author))).exhaustive();
   const sonarFields = getSonarFields(params);
   const jobField = makePayloadField("Status", `${statusIcon} ${params.status.toUpperCase()}`, true);
   const workflowField = makePayloadField("Workflow", `${params.workflow}: ${params.failedJob ?? params.job}`, true);
@@ -152,16 +345,16 @@ var util;
     return obj;
   };
   util2.getValidEnumValues = (obj) => {
-    const validKeys = util2.objectKeys(obj).filter((k) => typeof obj[obj[k]] !== "number");
+    const validKeys = util2.objectKeys(obj).filter((k2) => typeof obj[obj[k2]] !== "number");
     const filtered = {};
-    for (const k of validKeys) {
-      filtered[k] = obj[k];
+    for (const k2 of validKeys) {
+      filtered[k2] = obj[k2];
     }
     return util2.objectValues(filtered);
   };
   util2.objectValues = (obj) => {
-    return util2.objectKeys(obj).map(function(e) {
-      return obj[e];
+    return util2.objectKeys(obj).map(function(e2) {
+      return obj[e2];
     });
   };
   util2.objectKeys = typeof Object.keys === "function" ? (obj) => Object.keys(obj) : (object) => {
@@ -185,7 +378,7 @@ var util;
     return array.map((val) => typeof val === "string" ? `'${val}'` : val).join(separator);
   }
   util2.joinValues = joinValues;
-  util2.jsonStringifyReplacer = (_, value) => {
+  util2.jsonStringifyReplacer = (_2, value) => {
     if (typeof value === "bigint") {
       return value.toString();
     }
@@ -225,8 +418,8 @@ var ZodParsedType = util.arrayToEnum([
   "set"
 ]);
 var getParsedType = (data) => {
-  const t = typeof data;
-  switch (t) {
+  const t2 = typeof data;
+  switch (t2) {
     case "undefined":
       return ZodParsedType.undefined;
     case "string":
@@ -326,10 +519,10 @@ var ZodError = class _ZodError extends Error {
           fieldErrors._errors.push(mapper(issue));
         } else {
           let curr = fieldErrors;
-          let i = 0;
-          while (i < issue.path.length) {
-            const el = issue.path[i];
-            const terminal = i === issue.path.length - 1;
+          let i2 = 0;
+          while (i2 < issue.path.length) {
+            const el = issue.path[i2];
+            const terminal = i2 === issue.path.length - 1;
             if (!terminal) {
               curr[el] = curr[el] || { _errors: [] };
             } else {
@@ -337,7 +530,7 @@ var ZodError = class _ZodError extends Error {
               curr[el]._errors.push(mapper(issue));
             }
             curr = curr[el];
-            i++;
+            i2++;
           }
         }
       }
@@ -500,7 +693,7 @@ var makeIssue = (params) => {
     };
   }
   let errorMessage = "";
-  const maps = errorMaps.filter((m) => !!m).slice().reverse();
+  const maps = errorMaps.filter((m2) => !!m2).slice().reverse();
   for (const map of maps) {
     errorMessage = map(fullIssue, { data, defaultError: errorMessage }).message;
   }
@@ -523,7 +716,7 @@ function addIssueToContext(ctx, issueData) {
       overrideMap,
       overrideMap === errorMap ? void 0 : errorMap
       // then global default map
-    ].filter((x) => !!x)
+    ].filter((x2) => !!x2)
   });
   ctx.common.issues.push(issue);
 }
@@ -541,12 +734,12 @@ var ParseStatus = class _ParseStatus {
   }
   static mergeArray(status, results) {
     const arrayValue = [];
-    for (const s of results) {
-      if (s.status === "aborted")
+    for (const s2 of results) {
+      if (s2.status === "aborted")
         return INVALID;
-      if (s.status === "dirty")
+      if (s2.status === "dirty")
         status.dirty();
-      arrayValue.push(s.value);
+      arrayValue.push(s2.value);
     }
     return { status: status.value, value: arrayValue };
   }
@@ -586,10 +779,10 @@ var INVALID = Object.freeze({
 });
 var DIRTY = (value) => ({ status: "dirty", value });
 var OK = (value) => ({ status: "valid", value });
-var isAborted = (x) => x.status === "aborted";
-var isDirty = (x) => x.status === "dirty";
-var isValid = (x) => x.status === "valid";
-var isAsync = (x) => typeof Promise !== "undefined" && x instanceof Promise;
+var isAborted = (x2) => x2.status === "aborted";
+var isDirty = (x2) => x2.status === "dirty";
+var isValid = (x2) => x2.status === "valid";
+var isAsync = (x2) => typeof Promise !== "undefined" && x2 instanceof Promise;
 function __classPrivateFieldGet(receiver, state, kind, f) {
   if (kind === "a" && !f)
     throw new TypeError("Private accessor was defined without a getter");
@@ -2313,14 +2506,14 @@ var ZodArray = class _ZodArray extends ZodType {
       }
     }
     if (ctx.common.async) {
-      return Promise.all([...ctx.data].map((item, i) => {
-        return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+      return Promise.all([...ctx.data].map((item, i2) => {
+        return def.type._parseAsync(new ParseInputLazyPath(ctx, item, ctx.path, i2));
       })).then((result2) => {
         return ParseStatus.mergeArray(status, result2);
       });
     }
-    const result = [...ctx.data].map((item, i) => {
-      return def.type._parseSync(new ParseInputLazyPath(ctx, item, ctx.path, i));
+    const result = [...ctx.data].map((item, i2) => {
+      return def.type._parseSync(new ParseInputLazyPath(ctx, item, ctx.path, i2));
     });
     return ParseStatus.mergeArray(status, result);
   }
@@ -2922,17 +3115,17 @@ var ZodDiscriminatedUnion = class _ZodDiscriminatedUnion extends ZodType {
     });
   }
 };
-function mergeValues(a, b) {
+function mergeValues(a, b2) {
   const aType = getParsedType(a);
-  const bType = getParsedType(b);
-  if (a === b) {
+  const bType = getParsedType(b2);
+  if (a === b2) {
     return { valid: true, data: a };
   } else if (aType === ZodParsedType.object && bType === ZodParsedType.object) {
-    const bKeys = util.objectKeys(b);
+    const bKeys = util.objectKeys(b2);
     const sharedKeys = util.objectKeys(a).filter((key) => bKeys.indexOf(key) !== -1);
-    const newObj = { ...a, ...b };
+    const newObj = { ...a, ...b2 };
     for (const key of sharedKeys) {
-      const sharedValue = mergeValues(a[key], b[key]);
+      const sharedValue = mergeValues(a[key], b2[key]);
       if (!sharedValue.valid) {
         return { valid: false };
       }
@@ -2940,13 +3133,13 @@ function mergeValues(a, b) {
     }
     return { valid: true, data: newObj };
   } else if (aType === ZodParsedType.array && bType === ZodParsedType.array) {
-    if (a.length !== b.length) {
+    if (a.length !== b2.length) {
       return { valid: false };
     }
     const newArray = [];
     for (let index = 0; index < a.length; index++) {
       const itemA = a[index];
-      const itemB = b[index];
+      const itemB = b2[index];
       const sharedValue = mergeValues(itemA, itemB);
       if (!sharedValue.valid) {
         return { valid: false };
@@ -2954,7 +3147,7 @@ function mergeValues(a, b) {
       newArray.push(sharedValue.data);
     }
     return { valid: true, data: newArray };
-  } else if (aType === ZodParsedType.date && bType === ZodParsedType.date && +a === +b) {
+  } else if (aType === ZodParsedType.date && bType === ZodParsedType.date && +a === +b2) {
     return { valid: true, data: a };
   } else {
     return { valid: false };
@@ -3050,7 +3243,7 @@ var ZodTuple = class _ZodTuple extends ZodType {
       if (!schema)
         return null;
       return schema._parse(new ParseInputLazyPath(ctx, item, ctx.path, itemIndex));
-    }).filter((x) => !!x);
+    }).filter((x2) => !!x2);
     if (ctx.common.async) {
       return Promise.all(items).then((results) => {
         return ParseStatus.mergeArray(status, results);
@@ -3249,7 +3442,7 @@ var ZodSet = class _ZodSet extends ZodType {
       }
       return { status: status.value, value: parsedSet };
     }
-    const elements = [...ctx.data.values()].map((item, i) => valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i)));
+    const elements = [...ctx.data.values()].map((item, i2) => valueType._parse(new ParseInputLazyPath(ctx, item, ctx.path, i2)));
     if (ctx.common.async) {
       return Promise.all(elements).then((elements2) => finalizeSet(elements2));
     } else {
@@ -3308,7 +3501,7 @@ var ZodFunction = class _ZodFunction extends ZodType {
           ctx.schemaErrorMap,
           getErrorMap(),
           errorMap
-        ].filter((x) => !!x),
+        ].filter((x2) => !!x2),
         issueData: {
           code: ZodIssueCode.invalid_arguments,
           argumentsError: error
@@ -3324,7 +3517,7 @@ var ZodFunction = class _ZodFunction extends ZodType {
           ctx.schemaErrorMap,
           getErrorMap(),
           errorMap
-        ].filter((x) => !!x),
+        ].filter((x2) => !!x2),
         issueData: {
           code: ZodIssueCode.invalid_return_type,
           returnTypeError: error
@@ -3337,13 +3530,13 @@ var ZodFunction = class _ZodFunction extends ZodType {
       const me = this;
       return OK(async function(...args) {
         const error = new ZodError([]);
-        const parsedArgs = await me._def.args.parseAsync(args, params).catch((e) => {
-          error.addIssue(makeArgsIssue(args, e));
+        const parsedArgs = await me._def.args.parseAsync(args, params).catch((e2) => {
+          error.addIssue(makeArgsIssue(args, e2));
           throw error;
         });
         const result = await Reflect.apply(fn, this, parsedArgs);
-        const parsedReturns = await me._def.returns._def.type.parseAsync(result, params).catch((e) => {
-          error.addIssue(makeReturnsIssue(result, e));
+        const parsedReturns = await me._def.returns._def.type.parseAsync(result, params).catch((e2) => {
+          error.addIssue(makeReturnsIssue(result, e2));
           throw error;
         });
         return parsedReturns;
@@ -3925,10 +4118,10 @@ var ZodPipeline = class _ZodPipeline extends ZodType {
       }
     }
   }
-  static create(a, b) {
+  static create(a, b2) {
     return new _ZodPipeline({
       in: a,
-      out: b,
+      out: b2,
       typeName: ZodFirstPartyTypeKind.ZodPipeline
     });
   }
@@ -3960,10 +4153,10 @@ function custom(check, params = {}, fatal) {
     return ZodAny.create().superRefine((data, ctx) => {
       var _a, _b;
       if (!check(data)) {
-        const p = typeof params === "function" ? params(data) : typeof params === "string" ? { message: params } : params;
-        const _fatal = (_b = (_a = p.fatal) !== null && _a !== void 0 ? _a : fatal) !== null && _b !== void 0 ? _b : true;
-        const p2 = typeof p === "string" ? { message: p } : p;
-        ctx.addIssue({ code: "custom", ...p2, fatal: _fatal });
+        const p2 = typeof params === "function" ? params(data) : typeof params === "string" ? { message: params } : params;
+        const _fatal = (_b = (_a = p2.fatal) !== null && _a !== void 0 ? _a : fatal) !== null && _b !== void 0 ? _b : true;
+        const p22 = typeof p2 === "string" ? { message: p2 } : p2;
+        ctx.addIssue({ code: "custom", ...p22, fatal: _fatal });
       }
     });
   return ZodAny.create();
@@ -4061,7 +4254,7 @@ var coerce = {
   date: (arg) => ZodDate.create({ ...arg, coerce: true })
 };
 var NEVER = INVALID;
-var z = /* @__PURE__ */ Object.freeze({
+var z2 = /* @__PURE__ */ Object.freeze({
   __proto__: null,
   defaultErrorMap: errorMap,
   setErrorMap,
@@ -4181,51 +4374,52 @@ var z = /* @__PURE__ */ Object.freeze({
 // src/schemas.ts
 var DEFAULT_USERNAME = "Github Action";
 var DEFAULT_AVATARURL = "https://cdn-icons-png.flaticon.com/512/25/25231.png";
-var inputSchema = z.object({
-  INPUT_WEBHOOKURL: z.string(),
-  INPUT_STATUS: z.enum(["failure", "success", "skipped"]),
-  INPUT_PROJECTNAME: z.string(),
-  INPUT_TESTRESULTSURL: z.string().optional(),
-  INPUT_FAILEDJOB: z.string().optional(),
-  INPUT_SONARPROJECTKEY: z.string().optional(),
-  INPUT_SONARURL: z.string().optional(),
-  INPUT_SONARQUALITYGATESTATUS: z.string().optional(),
-  INPUT_AVATARURL: z.string().optional().default(DEFAULT_AVATARURL).transform((avatarUrl) => avatarUrl === "" ? DEFAULT_AVATARURL : avatarUrl),
-  INPUT_USERNAME: z.string().optional().default(DEFAULT_USERNAME).transform((username) => username === "" ? DEFAULT_USERNAME : username)
+var workflowStatusSchema = z2.enum(["failure", "success", "skipped", "cancelled"]);
+var inputSchema = z2.object({
+  INPUT_WEBHOOKURL: z2.string(),
+  INPUT_STATUS: workflowStatusSchema,
+  INPUT_PROJECTNAME: z2.string(),
+  INPUT_TESTRESULTSURL: z2.string().optional(),
+  INPUT_FAILEDJOB: z2.string().optional(),
+  INPUT_SONARPROJECTKEY: z2.string().optional(),
+  INPUT_SONARURL: z2.string().optional(),
+  INPUT_SONARQUALITYGATESTATUS: z2.string().optional(),
+  INPUT_AVATARURL: z2.string().optional().default(DEFAULT_AVATARURL).transform((avatarUrl) => avatarUrl === "" ? DEFAULT_AVATARURL : avatarUrl),
+  INPUT_USERNAME: z2.string().optional().default(DEFAULT_USERNAME).transform((username) => username === "" ? DEFAULT_USERNAME : username)
 });
-var envSchema = z.object({
-  GITHUB_EVENT_PATH: z.string(),
-  GITHUB_JOB: z.string(),
-  GITHUB_WORKFLOW: z.string(),
-  GITHUB_REPOSITORY: z.string(),
-  GITHUB_SERVER_URL: z.string(),
-  GITHUB_RUN_ID: z.string()
+var envSchema = z2.object({
+  GITHUB_EVENT_PATH: z2.string(),
+  GITHUB_JOB: z2.string(),
+  GITHUB_WORKFLOW: z2.string(),
+  GITHUB_REPOSITORY: z2.string(),
+  GITHUB_SERVER_URL: z2.string(),
+  GITHUB_RUN_ID: z2.string()
 });
-var fieldSchema = z.object({
-  name: z.string(),
-  value: z.string(),
-  inline: z.boolean().default(false)
+var fieldSchema = z2.object({
+  name: z2.string(),
+  value: z2.string(),
+  inline: z2.boolean().default(false)
 });
-var embedSchema = z.object({
-  author: z.object({
-    name: z.string().optional(),
-    url: z.string().url().optional(),
-    icon_url: z.string().url().optional()
+var embedSchema = z2.object({
+  author: z2.object({
+    name: z2.string().optional(),
+    url: z2.string().url().optional(),
+    icon_url: z2.string().url().optional()
   }).optional(),
-  title: z.string().optional(),
-  url: z.string().url().optional(),
-  description: z.string().optional(),
-  color: z.number().optional(),
-  fields: z.array(fieldSchema).optional(),
-  thumbnail: z.object({
-    url: z.string().url().optional()
+  title: z2.string().optional(),
+  url: z2.string().url().optional(),
+  description: z2.string().optional(),
+  color: z2.number().optional(),
+  fields: z2.array(fieldSchema).optional(),
+  thumbnail: z2.object({
+    url: z2.string().url().optional()
   }).optional(),
-  image: z.object({
-    url: z.string().url().optional()
+  image: z2.object({
+    url: z2.string().url().optional()
   }).optional(),
-  footer: z.object({
-    text: z.string(),
-    icon_url: z.string().url().optional()
+  footer: z2.object({
+    text: z2.string(),
+    icon_url: z2.string().url().optional()
   }).optional()
 });
 var actionInputSchema = inputSchema.merge(envSchema).transform((input) => ({
@@ -4249,29 +4443,29 @@ var actionInputSchema = inputSchema.merge(envSchema).transform((input) => ({
 }));
 
 // src/schemas/git.ts
-var userSchema = z.object({
-  avatar_url: z.string().optional(),
-  login: z.string(),
-  url: z.string().url()
+var userSchema = z2.object({
+  avatar_url: z2.string().optional(),
+  login: z2.string(),
+  url: z2.string().url()
 });
-var pullHeadSchema = z.object({
-  label: z.string(),
-  ref: z.string(),
-  sha: z.string()
+var pullHeadSchema = z2.object({
+  label: z2.string(),
+  ref: z2.string(),
+  sha: z2.string()
 });
-var pullRequestSchema = z.object({
+var pullRequestSchema = z2.object({
   head: pullHeadSchema
 });
-var headCommitSchema = z.object({
-  timestamp: z.string(),
-  message: z.string(),
-  id: z.string()
+var headCommitSchema = z2.object({
+  timestamp: z2.string(),
+  message: z2.string(),
+  id: z2.string()
 });
-var eventSchema = z.object({
+var eventSchema = z2.object({
   head_commit: headCommitSchema.optional(),
   pull_request: pullRequestSchema.optional(),
   sender: userSchema,
-  ref: z.string().optional().transform((str) => str?.replace("refs/heads/", ""))
+  ref: z2.string().optional().transform((str) => str?.replace("refs/heads/", ""))
 });
 
 // src/main.ts
