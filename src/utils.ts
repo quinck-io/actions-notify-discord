@@ -1,8 +1,13 @@
-import { Field } from './schemas'
+import { match } from 'ts-pattern'
+import { Field, WorkflowStatus } from './schemas'
 
 export const successIcons = [':unicorn:', ':man_dancing:', ':ghost:', ':dancer:', ':scream_cat:']
 
 export const failureIcons = [':fire:', 'dizzy_face', ':man_facepalming:', ':poop:', ':skull:']
+
+export const cancelledIcons = [':stop_sign:', ':warning:', ':construction:', ':x:', ':no_entry_sign:']
+
+export const skippedIcons = [':fast_forward:', ':next_track_button:', ':arrow_right:', ':zzz:', ':sleeping:']
 
 /**
  * Get a random success message
@@ -27,6 +32,28 @@ export const failureMessages = (author: string) => [
 ]
 
 /**
+ * Get a random cancelled message
+ */
+export const cancelledMessages = (author: string) => [
+    `:stop_sign: **${author}**, the workflow was cancelled.`,
+    `:warning: **${author}**, someone stopped the workflow.`,
+    `:construction: **${author}**, workflow cancelled - maybe next time!`,
+    `:x: **${author}**, workflow was interrupted.`,
+    `:no_entry_sign: **${author}**, workflow cancelled before completion.`,
+]
+
+/**
+ * Get a random skipped message
+ */
+export const skippedMessages = (author: string) => [
+    `:fast_forward: **${author}**, workflow was skipped.`,
+    `:next_track_button: **${author}**, skipping this one!`,
+    `:arrow_right: **${author}**, workflow skipped - moving on.`,
+    `:zzz: **${author}**, workflow took a nap (skipped).`,
+    `:sleeping: **${author}**, nothing to do here (skipped).`,
+]
+
+/**
  * Get a random status icon and message
  */
 export const getStatusInfo = (icons: string[], messages: string[]) => ({
@@ -37,16 +64,13 @@ export const getStatusInfo = (icons: string[], messages: string[]) => ({
 /**
  * Get the color for the embed
  */
-export const getColor = (status: string): number => {
-    switch (status) {
-        case 'success':
-            return 3066993 // green
-        case 'failure':
-            return 15158332 // red
-        default:
-            return 0 // white
-    }
-}
+export const getColor = (status: WorkflowStatus): number =>
+    match(status)
+        .with('success', () => 3066993) // green
+        .with('failure', () => 15158332) // red
+        .with('cancelled', () => 16753920) // orange
+        .with('skipped', () => 10197915) // light gray
+        .exhaustive()
 
 /**
  * Make a field for webhook payload

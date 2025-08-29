@@ -1,8 +1,13 @@
+import { match } from 'ts-pattern'
 import { DiscordNotificationParams, Embed, Field } from './schemas'
 import { GitEvent } from './schemas/git'
 import {
     failureIcons,
     failureMessages,
+    cancelledIcons,
+    cancelledMessages,
+    skippedIcons,
+    skippedMessages,
     getColor,
     getStatusInfo,
     makePayloadField,
@@ -57,10 +62,12 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
     const author = event.sender.login
     const branch = getBranch(event)
 
-    const { statusIcon, statusMessage } =
-        status === 'success'
-            ? getStatusInfo(successIcons, successMessages(author))
-            : getStatusInfo(failureIcons, failureMessages(author))
+    const { statusIcon, statusMessage } = match(status)
+        .with('success', () => getStatusInfo(successIcons, successMessages(author)))
+        .with('failure', () => getStatusInfo(failureIcons, failureMessages(author)))
+        .with('cancelled', () => getStatusInfo(cancelledIcons, cancelledMessages(author)))
+        .with('skipped', () => getStatusInfo(skippedIcons, skippedMessages(author)))
+        .exhaustive()
 
     const sonarFields = getSonarFields(params)
 

@@ -4,9 +4,12 @@ import { GitEvent } from './schemas/git'
 const DEFAULT_USERNAME = 'Github Action'
 const DEFAULT_AVATARURL = 'https://cdn-icons-png.flaticon.com/512/25/25231.png'
 
+export const workflowStatusSchema = z.enum(['failure', 'success', 'skipped', 'cancelled'])
+export type WorkflowStatus = z.infer<typeof workflowStatusSchema>
+
 const inputSchema = z.object({
     INPUT_WEBHOOKURL: z.string(),
-    INPUT_STATUS: z.enum(['failure', 'success', 'skipped']),
+    INPUT_STATUS: workflowStatusSchema,
     INPUT_PROJECTNAME: z.string(),
     INPUT_TESTRESULTSURL: z.string().optional(),
     INPUT_FAILEDJOB: z.string().optional(),
