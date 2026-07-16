@@ -36,21 +36,17 @@ var o = (n2, s2, c2) => {
     return r2 && i2 && Object.keys(i2).forEach((t2) => c2(t2, i2[t2])), r2;
   }
   if (r(n2)) {
-    if (!r(s2))
-      return false;
+    if (!r(s2)) return false;
     if (Array.isArray(n2)) {
-      if (!Array.isArray(s2))
-        return false;
+      if (!Array.isArray(s2)) return false;
       let t2 = [], r2 = [], a = [];
       for (const o2 of n2.keys()) {
         const s3 = n2[o2];
         i(s3) && s3[e] ? a.push(s3) : a.length ? r2.push(s3) : t2.push(s3);
       }
       if (a.length) {
-        if (a.length > 1)
-          throw new Error("Pattern error: Using `...P.array(...)` several times in a single pattern is not allowed.");
-        if (s2.length < t2.length + r2.length)
-          return false;
+        if (a.length > 1) throw new Error("Pattern error: Using `...P.array(...)` several times in a single pattern is not allowed.");
+        if (s2.length < t2.length + r2.length) return false;
         const e2 = s2.slice(0, t2.length), n3 = 0 === r2.length ? [] : s2.slice(-r2.length), i2 = s2.slice(t2.length, 0 === r2.length ? Infinity : -r2.length);
         return t2.every((t3, n4) => o(t3, e2[n4], c2)) && r2.every((t3, e3) => o(t3, n3[e3], c2)) && (0 === a.length || o(a[0], i2, c2));
       }
@@ -173,8 +169,7 @@ var I = class _I {
     this.input = void 0, this.state = void 0, this.input = t2, this.state = e2;
   }
   with(...t2) {
-    if (this.state.matched)
-      return this;
+    if (this.state.matched) return this;
     const e2 = t2[t2.length - 1], r2 = [t2[0]];
     let i2;
     3 === t2.length && "function" == typeof t2[1] ? i2 = t2[1] : t2.length > 2 && r2.push(...t2.slice(1, t2.length - 1));
@@ -185,8 +180,7 @@ var I = class _I {
     return new _I(this.input, u2);
   }
   when(t2, e2) {
-    if (this.state.matched)
-      return this;
+    if (this.state.matched) return this;
     const n2 = Boolean(t2(this.input));
     return new _I(this.input, n2 ? { matched: true, value: e2(this.input, this.input) } : $);
   }
@@ -213,10 +207,8 @@ function L(t2) {
 // src/utils.ts
 var aggregateStatus = (needs) => {
   const results = Object.values(needs).map((job) => job.result);
-  if (results.includes("failure"))
-    return "failure";
-  if (results.includes("cancelled"))
-    return "cancelled";
+  if (results.includes("failure")) return "failure";
+  if (results.includes("cancelled")) return "cancelled";
   return "success";
 };
 var getFailedJobs = (needs) => Object.entries(needs).filter(([, job]) => job.result === "failure").map(([jobId]) => jobId);
@@ -264,8 +256,7 @@ var makePayloadField = (title, description, inline = false) => {
 // src/discord.ts
 var getFooterText = (params) => {
   const { event } = params;
-  if (!event?.head_commit)
-    return void 0;
+  if (!event?.head_commit) return void 0;
   return `
 Commit: ${event.head_commit.timestamp}
 Message: ${event.head_commit.message}
@@ -290,13 +281,11 @@ var getSonarFields = (params) => {
   }
   if (sonarQualityGateStatus)
     sonarMessage.push(makePayloadField("Quality Gate", `*${sonarQualityGateStatus.toUpperCase()}*`));
-  if (sonarMessage.length <= 0)
-    return [];
+  if (sonarMessage.length <= 0) return [];
   return sonarMessage;
 };
 var getBranch = (event) => {
-  if (event.pull_request)
-    return event.pull_request.head.ref;
+  if (event.pull_request) return event.pull_request.head.ref;
   return event.ref;
 };
 async function sendDiscordWebhook(params) {
@@ -309,8 +298,7 @@ async function sendDiscordWebhook(params) {
   const workflowField = makePayloadField("Workflow", `${params.workflow}: ${params.failedJob ?? params.job}`, true);
   const statusField = makePayloadField("Status", statusMessage);
   const fields = [jobField, workflowField, ...sonarFields, statusField];
-  if (params.testResultsUrl)
-    fields.push(makePayloadField("Test Results", `[View Results](${params.testResultsUrl})`));
+  if (params.testResultsUrl) fields.push(makePayloadField("Test Results", `[View Results](${params.testResultsUrl})`));
   const footerText = getFooterText(params);
   const embed = {
     title: `${projectName} branch: ${branch}`,
@@ -319,8 +307,7 @@ async function sendDiscordWebhook(params) {
     color: getColor(status),
     fields
   };
-  if (footerText)
-    embed["footer"] = { text: footerText };
+  if (footerText) embed["footer"] = { text: footerText };
   const body = JSON.stringify({
     username: "Github actions",
     avatar_url: params.avatarUrl,
@@ -793,19 +780,14 @@ var isDirty = (x2) => x2.status === "dirty";
 var isValid = (x2) => x2.status === "valid";
 var isAsync = (x2) => typeof Promise !== "undefined" && x2 instanceof Promise;
 function __classPrivateFieldGet(receiver, state, kind, f) {
-  if (kind === "a" && !f)
-    throw new TypeError("Private accessor was defined without a getter");
-  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
-    throw new TypeError("Cannot read private member from an object whose class did not declare it");
+  if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a getter");
+  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot read private member from an object whose class did not declare it");
   return kind === "m" ? f : kind === "a" ? f.call(receiver) : f ? f.value : state.get(receiver);
 }
 function __classPrivateFieldSet(receiver, state, value, kind, f) {
-  if (kind === "m")
-    throw new TypeError("Private method is not writable");
-  if (kind === "a" && !f)
-    throw new TypeError("Private accessor was defined without a setter");
-  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver))
-    throw new TypeError("Cannot write private member to an object whose class did not declare it");
+  if (kind === "m") throw new TypeError("Private method is not writable");
+  if (kind === "a" && !f) throw new TypeError("Private accessor was defined without a setter");
+  if (typeof state === "function" ? receiver !== state || !f : !state.has(receiver)) throw new TypeError("Cannot write private member to an object whose class did not declare it");
   return kind === "a" ? f.call(receiver, value) : f ? f.value = value : state.set(receiver, value), value;
 }
 var errorUtil;
@@ -2649,8 +2631,7 @@ var ZodObject = class _ZodObject extends ZodType {
           });
           status.dirty();
         }
-      } else if (unknownKeys === "strip")
-        ;
+      } else if (unknownKeys === "strip") ;
       else {
         throw new Error(`Internal ZodObject error: invalid unknownKeys value.`);
       }
@@ -4253,14 +4234,14 @@ var ostring = () => stringType().optional();
 var onumber = () => numberType().optional();
 var oboolean = () => booleanType().optional();
 var coerce = {
-  string: (arg) => ZodString.create({ ...arg, coerce: true }),
-  number: (arg) => ZodNumber.create({ ...arg, coerce: true }),
-  boolean: (arg) => ZodBoolean.create({
+  string: ((arg) => ZodString.create({ ...arg, coerce: true })),
+  number: ((arg) => ZodNumber.create({ ...arg, coerce: true })),
+  boolean: ((arg) => ZodBoolean.create({
     ...arg,
     coerce: true
-  }),
-  bigint: (arg) => ZodBigInt.create({ ...arg, coerce: true }),
-  date: (arg) => ZodDate.create({ ...arg, coerce: true })
+  })),
+  bigint: ((arg) => ZodBigInt.create({ ...arg, coerce: true })),
+  date: ((arg) => ZodDate.create({ ...arg, coerce: true }))
 };
 var NEVER = INVALID;
 var z2 = /* @__PURE__ */ Object.freeze({
