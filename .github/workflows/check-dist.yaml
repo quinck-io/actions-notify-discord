@@ -1,0 +1,44 @@
+name: Check dist
+
+# The action runs `dist/main.js` directly from the repo, so the committed
+# bundle must always match the current `src/`. This fails the build if it drifts.
+
+on:
+    pull_request:
+        paths:
+            - "src/**"
+            - "dist/**"
+            - "package.json"
+            - "package-lock.json"
+            - "esbuild.js"
+    push:
+        branches:
+            - main
+
+permissions:
+    contents: read
+
+jobs:
+    check-dist:
+        name: Verify dist is up to date
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Rebuild dist
+              run: npm run build
+
+            - name: Compare committed dist with fresh build
+              run: |
+                  if ! git diff --quiet dist; then
+                    echo "::error::Committed dist/ is out of date. Run 'npm run build' and commit the result."
+                    git diff --stat dist
+                    exit 1
+                  fi

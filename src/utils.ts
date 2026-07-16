@@ -1,5 +1,28 @@
 import { match } from 'ts-pattern'
-import { Field, WorkflowStatus } from './schemas'
+import { Field, Needs, WorkflowStatus } from './schemas'
+
+/**
+ * Derive the overall workflow status from the `needs` context.
+ *
+ * `skipped` is treated as neutral: jobs gated off by event/branch skip by
+ * design and must not downgrade an otherwise green run. This mirrors how
+ * GitHub itself concludes a run: green when every job either succeeded or
+ * was skipped, only `failure`/`cancelled` pull it down.
+ */
+export const aggregateStatus = (needs: Needs): WorkflowStatus => {
+    const results = Object.values(needs).map(job => job.result)
+    if (results.includes('failure')) return 'failure'
+    if (results.includes('cancelled')) return 'cancelled'
+    return 'success'
+}
+
+/**
+ * List the ids of the jobs that failed, in declaration order.
+ */
+export const getFailedJobs = (needs: Needs): string[] =>
+    Object.entries(needs)
+        .filter(([, job]) => job.result === 'failure')
+        .map(([jobId]) => jobId)
 
 export const successIcons = [':unicorn:', ':man_dancing:', ':ghost:', ':dancer:', ':scream_cat:']
 

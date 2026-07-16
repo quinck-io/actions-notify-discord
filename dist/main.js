@@ -211,6 +211,15 @@ function L(t2) {
 }
 
 // src/utils.ts
+var aggregateStatus = (needs) => {
+  const results = Object.values(needs).map((job) => job.result);
+  if (results.includes("failure"))
+    return "failure";
+  if (results.includes("cancelled"))
+    return "cancelled";
+  return "success";
+};
+var getFailedJobs = (needs) => Object.entries(needs).filter(([, job]) => job.result === "failure").map(([jobId]) => jobId);
 var successIcons = [":unicorn:", ":man_dancing:", ":ghost:", ":dancer:", ":scream_cat:"];
 var failureIcons = [":fire:", "dizzy_face", ":man_facepalming:", ":poop:", ":skull:"];
 var cancelledIcons = [":stop_sign:", ":warning:", ":construction:", ":x:", ":no_entry_sign:"];
@@ -4375,12 +4384,25 @@ var z2 = /* @__PURE__ */ Object.freeze({
 var DEFAULT_USERNAME = "Github Action";
 var DEFAULT_AVATARURL = "https://cdn-icons-png.flaticon.com/512/25/25231.png";
 var workflowStatusSchema = z2.enum(["failure", "success", "skipped", "cancelled"]);
+var needSchema = z2.object({
+  result: workflowStatusSchema
+}).passthrough();
+var needsSchema = z2.string().transform((raw, ctx) => {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    ctx.addIssue({
+      code: z2.ZodIssueCode.custom,
+      message: "The `needs` input must be valid JSON, pass `${{ toJson(needs) }}`."
+    });
+    return z2.NEVER;
+  }
+}).pipe(z2.record(needSchema));
 var inputSchema = z2.object({
   INPUT_WEBHOOKURL: z2.string(),
-  INPUT_STATUS: workflowStatusSchema,
   INPUT_PROJECTNAME: z2.string(),
+  INPUT_NEEDS: needsSchema,
   INPUT_TESTRESULTSURL: z2.string().optional(),
-  INPUT_FAILEDJOB: z2.string().optional(),
   INPUT_SONARPROJECTKEY: z2.string().optional(),
   INPUT_SONARURL: z2.string().optional(),
   INPUT_SONARQUALITYGATESTATUS: z2.string().optional(),
@@ -4424,10 +4446,9 @@ var embedSchema = z2.object({
 });
 var actionInputSchema = inputSchema.merge(envSchema).transform((input) => ({
   webhookUrl: input.INPUT_WEBHOOKURL,
-  status: input.INPUT_STATUS,
   projectName: input.INPUT_PROJECTNAME,
+  needs: input.INPUT_NEEDS,
   testResultsUrl: input.INPUT_TESTRESULTSURL,
-  failedJob: input.INPUT_FAILEDJOB,
   avatarUrl: input.INPUT_AVATARURL,
   username: input.INPUT_USERNAME,
   eventPath: input.GITHUB_EVENT_PATH,
@@ -4474,9 +4495,13 @@ var work = async () => {
   const rawEvent = import_fs.default.readFileSync(input.eventPath, "utf8");
   console.log("rawEvent", rawEvent);
   const event = eventSchema.parse(JSON.parse(rawEvent));
+  const status = aggregateStatus(input.needs);
+  const failedJobs = getFailedJobs(input.needs);
   await sendDiscordWebhook({
     ...input,
-    event
+    event,
+    status,
+    failedJob: failedJobs.length > 0 ? failedJobs.join(", ") : void 0
   });
 };
 work().catch((err) => {

@@ -7,12 +7,42 @@ const DEFAULT_AVATARURL = 'https://cdn-icons-png.flaticon.com/512/25/25231.png'
 export const workflowStatusSchema = z.enum(['failure', 'success', 'skipped', 'cancelled'])
 export type WorkflowStatus = z.infer<typeof workflowStatusSchema>
 
+/**
+ * A single entry of the GitHub `needs` context. Only `result` matters to us;
+ * `outputs`/`outcome` are ignored via `.passthrough()`.
+ */
+const needSchema = z
+    .object({
+        result: workflowStatusSchema,
+    })
+    .passthrough()
+
+/**
+ * The `needs` input, passed by the caller as `${{ toJson(needs) }}`.
+ * Shape: `{ "<jobId>": { "result": "success" | ... }, ... }`.
+ */
+const needsSchema = z
+    .string()
+    .transform((raw, ctx) => {
+        try {
+            return JSON.parse(raw) as unknown
+        } catch {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'The `needs` input must be valid JSON, pass `${{ toJson(needs) }}`.',
+            })
+            return z.NEVER
+        }
+    })
+    .pipe(z.record(needSchema))
+
+export type Needs = z.infer<typeof needsSchema>
+
 const inputSchema = z.object({
     INPUT_WEBHOOKURL: z.string(),
-    INPUT_STATUS: workflowStatusSchema,
     INPUT_PROJECTNAME: z.string(),
+    INPUT_NEEDS: needsSchema,
     INPUT_TESTRESULTSURL: z.string().optional(),
-    INPUT_FAILEDJOB: z.string().optional(),
     INPUT_SONARPROJECTKEY: z.string().optional(),
     INPUT_SONARURL: z.string().optional(),
     INPUT_SONARQUALITYGATESTATUS: z.string().optional(),
@@ -80,10 +110,9 @@ export type Embed = z.infer<typeof embedSchema>
 
 export const actionInputSchema = inputSchema.merge(envSchema).transform(input => ({
     webhookUrl: input.INPUT_WEBHOOKURL,
-    status: input.INPUT_STATUS,
     projectName: input.INPUT_PROJECTNAME,
+    needs: input.INPUT_NEEDS,
     testResultsUrl: input.INPUT_TESTRESULTSURL,
-    failedJob: input.INPUT_FAILEDJOB,
     avatarUrl: input.INPUT_AVATARURL,
     username: input.INPUT_USERNAME,
     eventPath: input.GITHUB_EVENT_PATH,
@@ -103,4 +132,8 @@ export type ActionInput = z.infer<typeof actionInputSchema>
 
 export type DiscordNotificationParams = ActionInput & {
     event: GitEvent
+    /** Overall status derived from `needs`. */
+    status: WorkflowStatus
+    /** Comma-separated list of failed jobs, or `undefined` when none failed. */
+    failedJob?: string
 }

@@ -1,17 +1,13 @@
 {
     "name": "actions-notify-discord",
-    "version": "3.2.1",
-    "main": "dist/index.js",
+    "version": "4.0.0",
+    "main": "dist/main.js",
     "scripts": {
         "ts": "esr",
         "lint": "eslint \"src/**/*.ts\"",
         "lint:fix": "eslint \"src/**/*.ts\" --fix",
         "build": "node esbuild.js",
-        "prepare": "npm run build",
-        "prepublishOnly": "npm run lint",
-        "preversion": "npm run lint",
-        "version": "git add -A src",
-        "postversion": "git push && git push --tags"
+        "prepare": "npm run build"
     },
     "repository": {
         "type": "git",
@@ -32,9 +28,6 @@
         "prettier": "^2.7.1",
         "typescript": "^5.4.5"
     },
-    "files": [
-        "lib/**/*"
-    ],
     "dependencies": {
         "@actions/core": "^1.11.1",
         "ts-pattern": "^5.8.0",
