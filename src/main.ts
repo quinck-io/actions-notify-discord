@@ -1,9 +1,9 @@
-import fs from 'fs'
+import fs from 'node:fs'
+
 import { sendDiscordWebhook } from './discord'
 import { actionInputSchema } from './schemas'
 import { eventSchema } from './schemas/git'
 import { aggregateStatus, getFailedJobs } from './utils'
-
 
 const work = async () => {
     const input = actionInputSchema.parse(process.env)
@@ -22,8 +22,7 @@ const work = async () => {
     })
 }
 
-work()
-    .catch(err => {
-        console.error(err)
-        process.exit(1)
-    })
+work().catch(err => {
+    console.error(err)
+    process.exit(1)
+})

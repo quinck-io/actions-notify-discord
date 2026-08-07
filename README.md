@@ -58,9 +58,9 @@ send-notification:
 
 The overall status is computed from the result of every job in `needs`:
 
--   if any job failed, the status is `failure`
--   else if any job was cancelled, the status is `cancelled`
--   else the status is `success`
+- if any job failed, the status is `failure`
+- else if any job was cancelled, the status is `cancelled`
+- else the status is `success`
 
 Skipped jobs are ignored: a job skipped by an `if:`, event or branch condition does not downgrade the status. This matches how GitHub concludes a run. The names of the failed jobs are collected automatically and shown in the message.
 
@@ -170,9 +170,9 @@ In v4 you delete that whole step and pass `needs` instead:
 
 Notes:
 
--   the `status` and `failedJob` inputs were removed, they are now derived from `needs`
--   `skipped` no longer downgrades the status (v3 reported `skipped` if any job was skipped, v4 treats it as neutral, matching GitHub)
--   pipelines still pinned to `@v3` keep working unchanged
+- the `status` and `failedJob` inputs were removed, they are now derived from `needs`
+- `skipped` no longer downgrades the status (v3 reported `skipped` if any job was skipped, v4 treats it as neutral, matching GitHub)
+- pipelines still pinned to `@v3` keep working unchanged
 
 # Contributing
 

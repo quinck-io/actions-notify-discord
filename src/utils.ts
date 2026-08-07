@@ -1,6 +1,7 @@
 import { match } from 'ts-pattern'
-import { Field, Needs, WorkflowStatus } from './schemas'
-import { Commit } from './schemas/git'
+
+import type { Field, Needs, WorkflowStatus } from './schemas'
+import type { Commit } from './schemas/git'
 
 /**
  * Derive the overall workflow status from the `needs` context.
@@ -11,9 +12,9 @@ import { Commit } from './schemas/git'
  * was skipped, only `failure`/`cancelled` pull it down.
  */
 export const aggregateStatus = (needs: Needs): WorkflowStatus => {
-    const results = Object.values(needs).map(job => job.result)
-    if (results.includes('failure')) return 'failure'
-    if (results.includes('cancelled')) return 'cancelled'
+    const results = new Set(Object.values(needs).map(job => job.result))
+    if (results.has('failure')) return 'failure'
+    if (results.has('cancelled')) return 'cancelled'
     return 'success'
 }
 
@@ -36,11 +37,9 @@ const MAX_COMMIT_LINE_LENGTH = 100
  */
 export const formatCommitList = (commits: Commit[]): string => {
     const lines = commits.map(commit => {
-        const firstLine = commit.message.split('\n')[0]
+        const firstLine = commit.message.split('\n')[0] ?? ''
         const message =
-            firstLine.length > MAX_COMMIT_LINE_LENGTH
-                ? `${firstLine.slice(0, MAX_COMMIT_LINE_LENGTH)}…`
-                : firstLine
+            firstLine.length > MAX_COMMIT_LINE_LENGTH ? `${firstLine.slice(0, MAX_COMMIT_LINE_LENGTH)}…` : firstLine
         return `[\`${commit.id.slice(0, 7)}\`](${commit.url}) ${message}`
     })
 
@@ -110,12 +109,14 @@ export const skippedMessages = (author: string) => [
     `:sleeping: **${author}**, nothing to do here (skipped).`,
 ]
 
+const pickRandom = (values: string[]): string => values[Math.floor(Math.random() * values.length)] ?? ''
+
 /**
  * Get a random status icon and message
  */
 export const getStatusInfo = (icons: string[], messages: string[]) => ({
-    statusIcon: icons[Math.floor(Math.random() * icons.length)],
-    statusMessage: messages[Math.floor(Math.random() * messages.length)],
+    statusIcon: pickRandom(icons),
+    statusMessage: pickRandom(messages),
 })
 
 /**

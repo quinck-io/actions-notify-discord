@@ -1,6 +1,7 @@
 import { match } from 'ts-pattern'
-import { DiscordNotificationParams, Embed, Field } from './schemas'
-import { GitEvent } from './schemas/git'
+
+import type { DiscordNotificationParams, Embed, Field } from './schemas'
+import type { GitEvent } from './schemas/git'
 import {
     failureIcons,
     failureMessages,
@@ -37,6 +38,7 @@ const getSonarFields = (params: DiscordNotificationParams): Field[] => {
             const branch = getBranch(params.event)
             return `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${branch}`
         }
+        return undefined
     })()
 
     const sonarMessage: Field[] = []

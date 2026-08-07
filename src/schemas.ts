@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { GitEvent } from './schemas/git'
+
+import type { GitEvent } from './schemas/git'
 
 const DEFAULT_USERNAME = 'Github Action'
 const DEFAULT_AVATARURL = 'https://cdn-icons-png.flaticon.com/512/25/25231.png'
@@ -9,13 +10,11 @@ export type WorkflowStatus = z.infer<typeof workflowStatusSchema>
 
 /**
  * A single entry of the GitHub `needs` context. Only `result` matters to us;
- * `outputs`/`outcome` are ignored via `.passthrough()`.
+ * `outputs`/`outcome` are ignored via the loose object.
  */
-const needSchema = z
-    .object({
-        result: workflowStatusSchema,
-    })
-    .passthrough()
+const needSchema = z.looseObject({
+    result: workflowStatusSchema,
+})
 
 /**
  * The `needs` input, passed by the caller as `${{ toJson(needs) }}`.
@@ -28,13 +27,13 @@ const needsSchema = z
             return JSON.parse(raw) as unknown
         } catch {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: 'custom',
                 message: 'The `needs` input must be valid JSON, pass `${{ toJson(needs) }}`.',
             })
             return z.NEVER
         }
     })
-    .pipe(z.record(needSchema))
+    .pipe(z.record(z.string(), needSchema))
 
 export type Needs = z.infer<typeof needsSchema>
 
@@ -84,36 +83,36 @@ const embedSchema = z.object({
     author: z
         .object({
             name: z.string().optional(),
-            url: z.string().url().optional(),
-            icon_url: z.string().url().optional(),
+            url: z.url().optional(),
+            icon_url: z.url().optional(),
         })
         .optional(),
     title: z.string().optional(),
-    url: z.string().url().optional(),
+    url: z.url().optional(),
     description: z.string().optional(),
     color: z.number().optional(),
     fields: z.array(fieldSchema).optional(),
     thumbnail: z
         .object({
-            url: z.string().url().optional(),
+            url: z.url().optional(),
         })
         .optional(),
     image: z
         .object({
-            url: z.string().url().optional(),
+            url: z.url().optional(),
         })
         .optional(),
     footer: z
         .object({
             text: z.string(),
-            icon_url: z.string().url().optional(),
+            icon_url: z.url().optional(),
         })
         .optional(),
 })
 
 export type Embed = z.infer<typeof embedSchema>
 
-export const actionInputSchema = inputSchema.merge(envSchema).transform(input => ({
+export const actionInputSchema = inputSchema.extend(envSchema.shape).transform(input => ({
     webhookUrl: input.INPUT_WEBHOOKURL,
     projectName: input.INPUT_PROJECTNAME,
     needs: input.INPUT_NEEDS,

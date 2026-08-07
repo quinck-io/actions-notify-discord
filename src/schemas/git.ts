@@ -3,19 +3,18 @@ import { z } from 'zod'
 const userSchema = z.object({
     avatar_url: z.string().optional(),
     login: z.string(),
-    url: z.string().url()
+    url: z.url(),
 })
 
 const pullHeadSchema = z.object({
     label: z.string(),
     ref: z.string(),
-    sha: z.string()
+    sha: z.string(),
 })
 
 const pullRequestSchema = z.object({
-    head: pullHeadSchema
+    head: pullHeadSchema,
 })
-
 
 const headCommitSchema = z.object({
     timestamp: z.string(),
@@ -36,9 +35,11 @@ export const eventSchema = z.object({
     commits: z.array(commitSchema).optional(),
     pull_request: pullRequestSchema.optional(),
     sender: userSchema,
-    ref: z.string().optional().transform(str => str?.replace('refs/heads/', ''))
+    ref: z
+        .string()
+        .optional()
+        .transform(str => str?.replace('refs/heads/', '')),
 })
-
 
 export type GitEvent = z.infer<typeof eventSchema>
 export type Commit = z.infer<typeof commitSchema>
