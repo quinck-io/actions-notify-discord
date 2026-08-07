@@ -1,31 +1,6 @@
-import { match } from 'ts-pattern'
-
 import type { DiscordNotificationParams, Embed, Field } from './schemas'
 import type { GitEvent } from './schemas/git'
-import {
-    failureIcons,
-    failureMessages,
-    cancelledIcons,
-    cancelledMessages,
-    skippedIcons,
-    skippedMessages,
-    formatCommitList,
-    getColor,
-    getStatusInfo,
-    makePayloadField,
-    successIcons,
-    successMessages,
-} from './utils'
-
-const getFooterText = (params: DiscordNotificationParams) => {
-    const { event } = params
-    if (!event?.head_commit) return undefined
-    return `
-Commit: ${event.head_commit.timestamp}
-Message: ${event.head_commit.message}
-Hash: ${event.head_commit.id.slice(0, 7)}
-`
-}
+import { formatCommitList, getColor, getStatusIcon, makePayloadField, selectCommits } from './utils'
 
 const getSonarFields = (params: DiscordNotificationParams): Field[] => {
     const { sonarUrl, sonarProjectKey, sonarQualityGateStatus } = params
@@ -49,14 +24,12 @@ const getSonarFields = (params: DiscordNotificationParams): Field[] => {
     if (sonarQualityGateStatus)
         sonarMessage.push(makePayloadField('Quality Gate', `*${sonarQualityGateStatus.toUpperCase()}*`))
 
-    if (sonarMessage.length <= 0) return []
-
     return sonarMessage
 }
 
 const getBranch = (event: GitEvent): string => {
     if (event.pull_request) return event.pull_request.head.ref
-    return event.ref!
+    return event.ref ?? ''
 }
 
 export async function sendDiscordWebhook(params: DiscordNotificationParams): Promise<void> {
@@ -65,25 +38,16 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
     const author = event.sender.login
     const branch = getBranch(event)
 
-    const { statusIcon, statusMessage } = match(status)
-        .with('success', () => getStatusInfo(successIcons, successMessages(author)))
-        .with('failure', () => getStatusInfo(failureIcons, failureMessages(author)))
-        .with('cancelled', () => getStatusInfo(cancelledIcons, cancelledMessages(author)))
-        .with('skipped', () => getStatusInfo(skippedIcons, skippedMessages(author)))
-        .exhaustive()
-
-    const sonarFields = getSonarFields(params)
-
-    const jobField = makePayloadField('Status', `${statusIcon} ${params.status.toUpperCase()}`, true)
-    const workflowField = makePayloadField('Workflow', `${params.workflow}: ${params.failedJob ?? params.job}`, true)
-    const statusField = makePayloadField('Status', statusMessage)
-
-    const fields: Field[] = [jobField, workflowField, ...sonarFields, statusField]
+    const fields: Field[] = [
+        makePayloadField('Status', `${getStatusIcon(status)} ${status.toUpperCase()}`, true),
+        makePayloadField('Workflow', `${params.workflow}: ${params.failedJob ?? params.job}`, true),
+        ...getSonarFields(params),
+    ]
 
     if (params.testResultsUrl) fields.push(makePayloadField('Test Results', `[View Results](${params.testResultsUrl})`))
 
-    const footerText = getFooterText(params)
-    const commitList = params.showCommitList ? formatCommitList(event.commits ?? []) : ''
+    const commits = selectCommits(event, { onlyHead: params.onlyHeadCommit, order: params.commitOrder })
+    const commitList = formatCommitList(commits, { showDates: params.showCommitDates })
 
     const embed: Embed = {
         title: `${projectName} branch: ${branch}`,
@@ -93,11 +57,10 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
         fields,
     }
 
-    if (commitList) embed['description'] = commitList
-    if (footerText) embed['footer'] = { text: footerText }
+    if (commitList) embed.description = commitList
 
     const body = JSON.stringify({
-        username: 'Github actions',
+        username: params.username,
         avatar_url: params.avatarUrl,
         embeds: [embed],
     })

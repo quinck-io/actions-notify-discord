@@ -15,8 +15,16 @@ inputs:
     testResultsUrl:
         description: 'URL to test results'
         required: false
-    showCommitList:
-        description: 'If true, show every commit of the push in the message body. Only applies to push events.'
+    onlyHeadCommit:
+        description: 'If true, show only the head commit instead of every commit of the push. Only applies to push events.'
+        required: false
+        default: 'false'
+    commitOrder:
+        description: 'Order of the commit list: newest-first or oldest-first.'
+        required: false
+        default: 'newest-first'
+    showCommitDates:
+        description: 'If true, add the ISO date of each commit to the commit list.'
         required: false
         default: 'false'
     sonarProjectKey:

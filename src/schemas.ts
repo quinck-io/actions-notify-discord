@@ -37,16 +37,30 @@ const needsSchema = z
 
 export type Needs = z.infer<typeof needsSchema>
 
+/** A boolean action input: the strings 'true'/'false', empty or absent means false. */
+const booleanInput = z
+    .enum(['true', 'false', ''])
+    .optional()
+    .default('false')
+    .transform(value => value === 'true')
+
+/** The order of the commit list, empty or absent means newest first. */
+const commitOrderInput = z
+    .enum(['newest-first', 'oldest-first', ''])
+    .optional()
+    .default('newest-first')
+    .transform(value => (value === '' ? 'newest-first' : value))
+
+export type CommitOrder = z.infer<typeof commitOrderInput>
+
 const inputSchema = z.object({
     INPUT_WEBHOOKURL: z.string(),
     INPUT_PROJECTNAME: z.string(),
     INPUT_NEEDS: needsSchema,
     INPUT_TESTRESULTSURL: z.string().optional(),
-    INPUT_SHOWCOMMITLIST: z
-        .enum(['true', 'false', ''])
-        .optional()
-        .default('false')
-        .transform(value => value === 'true'),
+    INPUT_ONLYHEADCOMMIT: booleanInput,
+    INPUT_COMMITORDER: commitOrderInput,
+    INPUT_SHOWCOMMITDATES: booleanInput,
     INPUT_SONARPROJECTKEY: z.string().optional(),
     INPUT_SONARURL: z.string().optional(),
     INPUT_SONARQUALITYGATESTATUS: z.string().optional(),
@@ -117,7 +131,9 @@ export const actionInputSchema = inputSchema.extend(envSchema.shape).transform(i
     projectName: input.INPUT_PROJECTNAME,
     needs: input.INPUT_NEEDS,
     testResultsUrl: input.INPUT_TESTRESULTSURL,
-    showCommitList: input.INPUT_SHOWCOMMITLIST,
+    onlyHeadCommit: input.INPUT_ONLYHEADCOMMIT,
+    commitOrder: input.INPUT_COMMITORDER,
+    showCommitDates: input.INPUT_SHOWCOMMITDATES,
     avatarUrl: input.INPUT_AVATARURL,
     username: input.INPUT_USERNAME,
     eventPath: input.GITHUB_EVENT_PATH,

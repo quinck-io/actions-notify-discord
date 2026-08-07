@@ -1,7 +1,7 @@
 import { match } from 'ts-pattern'
 
-import type { Field, Needs, WorkflowStatus } from './schemas'
-import type { Commit } from './schemas/git'
+import type { CommitOrder, Field, Needs, WorkflowStatus } from './schemas'
+import type { Commit, GitEvent } from './schemas/git'
 
 /**
  * Derive the overall workflow status from the `needs` context.
@@ -30,17 +30,42 @@ export const getFailedJobs = (needs: Needs): string[] =>
 const MAX_COMMIT_LIST_LENGTH = 3500
 const MAX_COMMIT_LINE_LENGTH = 100
 
+export type CommitSelectionOptions = {
+    /** Keep only the head commit instead of the full push. */
+    onlyHead: boolean
+    /** Order of the list, `newest-first` or `oldest-first`. */
+    order: CommitOrder
+}
+
 /**
- * Format the commits of a push as one markdown line per commit,
- * oldest first: linked short hash plus the first line of the message.
+ * Select the commits to show.
+ * Falls back to `head_commit` when the push has no commit array (force push).
+ * Returns an empty list on pull request events.
+ */
+export const selectCommits = (event: GitEvent, options: CommitSelectionOptions): Commit[] => {
+    const newestFirst = (event.commits ?? []).toReversed()
+    if (newestFirst.length === 0) return event.head_commit ? [event.head_commit] : []
+    const selected = options.onlyHead ? newestFirst.slice(0, 1) : newestFirst
+    return options.order === 'oldest-first' ? selected.toReversed() : selected
+}
+
+export type CommitListOptions = {
+    /** Add the ISO date of each commit to its line. */
+    showDates: boolean
+}
+
+/**
+ * Format commits under a bold "Commits" header, one markdown line per commit:
+ * linked short hash, optional ISO date, and the first line of the message.
  * Lines that pass the Discord description cap are dropped and counted.
  */
-export const formatCommitList = (commits: Commit[]): string => {
+export const formatCommitList = (commits: Commit[], options: CommitListOptions): string => {
     const lines = commits.map(commit => {
         const firstLine = commit.message.split('\n')[0] ?? ''
         const message =
             firstLine.length > MAX_COMMIT_LINE_LENGTH ? `${firstLine.slice(0, MAX_COMMIT_LINE_LENGTH)}…` : firstLine
-        return `[\`${commit.id.slice(0, 7)}\`](${commit.url}) ${message}`
+        const date = options.showDates ? ` \`${commit.timestamp.slice(0, 10)}\`` : ''
+        return `[\`${commit.id.slice(0, 7)}\`](${commit.url})${date} ${message}`
     })
 
     const kept: string[] = []
@@ -54,70 +79,20 @@ export const formatCommitList = (commits: Commit[]): string => {
     const dropped = lines.length - kept.length
     if (dropped > 0) kept.push(`…and ${dropped} more commits`)
 
-    return kept.join('\n')
+    if (kept.length === 0) return ''
+    return ['**Commits**', ...kept].join('\n')
 }
 
-export const successIcons = [':unicorn:', ':man_dancing:', ':ghost:', ':dancer:', ':scream_cat:']
-
-export const failureIcons = [':fire:', 'dizzy_face', ':man_facepalming:', ':poop:', ':skull:']
-
-export const cancelledIcons = [':stop_sign:', ':warning:', ':construction:', ':x:', ':no_entry_sign:']
-
-export const skippedIcons = [':fast_forward:', ':next_track_button:', ':arrow_right:', ':zzz:', ':sleeping:']
-
 /**
- * Get a random success message
+ * Fixed status icon, used by the default message format.
  */
-export const successMessages = (author: string) => [
-    `:champagne::champagne:Congrats **${author}**, you made it. :sunglasses::champagne::champagne:`,
-    `:moyai::moyai:Mah man **${author}**, you made it. :women_with_bunny_ears_partying::moyai::moyai:`,
-    `:burrito::burrito:**${author}**, you did well. :women_with_bunny_ears_partying::burrito::burrito:`,
-    `:pig::pig: **${author}** You son of a bitch, you did it. :women_with_bunny_ears_partying::pig::pig:`,
-    `:ferris_wheel::ferris_wheel:**${author}** You're great.:ferris_wheel::ferris_wheel: `,
-]
-
-/**
- * Get a random failures message
- */
-export const failureMessages = (author: string) => [
-    `:fire::fire:* **${author}**, You're an idiot!*:fire::fire:`,
-    `:bomb::bomb:*${author}*, How could this happen?:bomb::bomb:`,
-    `:pouting_cat: :pouting_cat: *${author}*, What the hell are you doing?:pouting_cat: :pouting_cat:`,
-    `:face_vomiting::face_vomiting:*${author}*, This commit made my mom cry!:face_vomiting::face_vomiting:`,
-    `:facepalm::facepalm:${author}, Come on, at least offer a coffee before making such a commit!:facepalm::facepalm:`,
-]
-
-/**
- * Get a random cancelled message
- */
-export const cancelledMessages = (author: string) => [
-    `:stop_sign: **${author}**, the workflow was cancelled.`,
-    `:warning: **${author}**, someone stopped the workflow.`,
-    `:construction: **${author}**, workflow cancelled - maybe next time!`,
-    `:x: **${author}**, workflow was interrupted.`,
-    `:no_entry_sign: **${author}**, workflow cancelled before completion.`,
-]
-
-/**
- * Get a random skipped message
- */
-export const skippedMessages = (author: string) => [
-    `:fast_forward: **${author}**, workflow was skipped.`,
-    `:next_track_button: **${author}**, skipping this one!`,
-    `:arrow_right: **${author}**, workflow skipped - moving on.`,
-    `:zzz: **${author}**, workflow took a nap (skipped).`,
-    `:sleeping: **${author}**, nothing to do here (skipped).`,
-]
-
-const pickRandom = (values: string[]): string => values[Math.floor(Math.random() * values.length)] ?? ''
-
-/**
- * Get a random status icon and message
- */
-export const getStatusInfo = (icons: string[], messages: string[]) => ({
-    statusIcon: pickRandom(icons),
-    statusMessage: pickRandom(messages),
-})
+export const getStatusIcon = (status: WorkflowStatus): string =>
+    match(status)
+        .with('success', () => ':white_check_mark:')
+        .with('failure', () => ':x:')
+        .with('cancelled', () => ':no_entry_sign:')
+        .with('skipped', () => ':fast_forward:')
+        .exhaustive()
 
 /**
  * Get the color for the embed

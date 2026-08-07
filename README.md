@@ -15,7 +15,7 @@ send-notification:
     needs: [build, lint, test, deploy] # the jobs whose result you want reported
     if: always()
     steps:
-        - uses: quinck-io/actions-notify-discord@v4
+        - uses: quinck-io/actions-notify-discord@v5
           with:
               # [Required] Discord Webhook URL
               # use secrets: i.e. ${{ secrets.DISCORD_WEBHOOK }}
@@ -31,10 +31,18 @@ send-notification:
               # [Optional] URL to test results
               testResultsUrl: ''
 
-              # [Optional] Show every commit of the push in the message body
-              # Only applies to push events
+              # [Optional] Show only the head commit instead of every commit
+              # of the push. Only applies to push events
               # Default: false
-              showCommitList: ''
+              onlyHeadCommit: ''
+
+              # [Optional] Order of the commit list: newest-first or oldest-first
+              # Default: newest-first
+              commitOrder: ''
+
+              # [Optional] Add the ISO date of each commit to the commit list
+              # Default: false
+              showCommitDates: ''
 
               # [Optional] SonarCloud project key
               sonarProjectKey: ''
@@ -64,25 +72,38 @@ The overall status is computed from the result of every job in `needs`:
 
 Skipped jobs are ignored: a job skipped by an `if:`, event or branch condition does not downgrade the status. This matches how GitHub concludes a run. The names of the failed jobs are collected automatically and shown in the message.
 
+## Message format
+
+The message is one embed:
+
+- **Status** and **Workflow** fields on top, with a fixed status icon
+- a **Commits** section below: one line per commit with the linked short hash and the first line of the commit message
+
+By default every commit of the push is shown, newest first. GitHub caps the push payload at 20 commits. Longer lists are truncated with an "…and N more commits" note. Pull request events have no commit list.
+
+Three inputs control the section:
+
+- `onlyHeadCommit: 'true'` shows only the head commit, with the same line format
+- `commitOrder: 'oldest-first'` reverses the order
+- `showCommitDates: 'true'` adds the ISO date of each commit to its line
+
 # Scenarios
 
-## With the commit list
-
-Set `showCommitList: 'true'` to list every commit of the push in the message body. Each line shows the linked short hash and the first line of the commit message. GitHub caps the push payload at 20 commits. Longer lists are truncated with an "…and N more commits" note. Pull request events have no commit list, the message stays unchanged there.
+## Only the head commit
 
 ```yaml
-- uses: quinck-io/actions-notify-discord@v4
+- uses: quinck-io/actions-notify-discord@v5
   with:
       webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       projectName: 'your project name'
       needs: ${{ toJson(needs) }}
-      showCommitList: 'true'
+      onlyHeadCommit: 'true'
 ```
 
 ## Just pipeline result
 
 ```yaml
-- uses: quinck-io/actions-notify-discord@v4
+- uses: quinck-io/actions-notify-discord@v5
   with:
       webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       projectName: 'your project name'
@@ -92,7 +113,7 @@ Set `showCommitList: 'true'` to list every commit of the push in the message bod
 ## With Tests
 
 ```yaml
-- uses: quinck-io/actions-notify-discord@v4
+- uses: quinck-io/actions-notify-discord@v5
   with:
       webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       projectName: 'your project name'
@@ -110,7 +131,7 @@ Set `showCommitList: 'true'` to list every commit of the push in the message bod
       path: 'test-results.json'
       reporter: mocha-json
 
-- uses: quinck-io/actions-notify-discord@v4
+- uses: quinck-io/actions-notify-discord@v5
   with:
       webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       projectName: 'your project name'
@@ -121,7 +142,7 @@ Set `showCommitList: 'true'` to list every commit of the push in the message bod
 ## With Sonar
 
 ```yaml
-- uses: quinck-io/actions-notify-discord@v4
+- uses: quinck-io/actions-notify-discord@v5
   with:
       webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       projectName: 'your project name'

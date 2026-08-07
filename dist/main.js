@@ -221,11 +221,18 @@ var aggregateStatus = (needs) => {
 var getFailedJobs = (needs) => Object.entries(needs).filter(([, job]) => job.result === "failure").map(([jobId]) => jobId);
 var MAX_COMMIT_LIST_LENGTH = 3500;
 var MAX_COMMIT_LINE_LENGTH = 100;
-var formatCommitList = (commits) => {
+var selectCommits = (event, options) => {
+  const newestFirst = (event.commits ?? []).toReversed();
+  if (newestFirst.length === 0) return event.head_commit ? [event.head_commit] : [];
+  const selected = options.onlyHead ? newestFirst.slice(0, 1) : newestFirst;
+  return options.order === "oldest-first" ? selected.toReversed() : selected;
+};
+var formatCommitList = (commits, options) => {
   const lines = commits.map((commit) => {
     const firstLine = commit.message.split("\n")[0] ?? "";
     const message = firstLine.length > MAX_COMMIT_LINE_LENGTH ? `${firstLine.slice(0, MAX_COMMIT_LINE_LENGTH)}\u2026` : firstLine;
-    return `[\`${commit.id.slice(0, 7)}\`](${commit.url}) ${message}`;
+    const date5 = options.showDates ? ` \`${commit.timestamp.slice(0, 10)}\`` : "";
+    return `[\`${commit.id.slice(0, 7)}\`](${commit.url})${date5} ${message}`;
   });
   const kept = [];
   let length = 0;
@@ -236,60 +243,16 @@ var formatCommitList = (commits) => {
   }
   const dropped = lines.length - kept.length;
   if (dropped > 0) kept.push(`\u2026and ${dropped} more commits`);
-  return kept.join("\n");
+  if (kept.length === 0) return "";
+  return ["**Commits**", ...kept].join("\n");
 };
-var successIcons = [":unicorn:", ":man_dancing:", ":ghost:", ":dancer:", ":scream_cat:"];
-var failureIcons = [":fire:", "dizzy_face", ":man_facepalming:", ":poop:", ":skull:"];
-var cancelledIcons = [":stop_sign:", ":warning:", ":construction:", ":x:", ":no_entry_sign:"];
-var skippedIcons = [":fast_forward:", ":next_track_button:", ":arrow_right:", ":zzz:", ":sleeping:"];
-var successMessages = (author) => [
-  `:champagne::champagne:Congrats **${author}**, you made it. :sunglasses::champagne::champagne:`,
-  `:moyai::moyai:Mah man **${author}**, you made it. :women_with_bunny_ears_partying::moyai::moyai:`,
-  `:burrito::burrito:**${author}**, you did well. :women_with_bunny_ears_partying::burrito::burrito:`,
-  `:pig::pig: **${author}** You son of a bitch, you did it. :women_with_bunny_ears_partying::pig::pig:`,
-  `:ferris_wheel::ferris_wheel:**${author}** You're great.:ferris_wheel::ferris_wheel: `
-];
-var failureMessages = (author) => [
-  `:fire::fire:* **${author}**, You're an idiot!*:fire::fire:`,
-  `:bomb::bomb:*${author}*, How could this happen?:bomb::bomb:`,
-  `:pouting_cat: :pouting_cat: *${author}*, What the hell are you doing?:pouting_cat: :pouting_cat:`,
-  `:face_vomiting::face_vomiting:*${author}*, This commit made my mom cry!:face_vomiting::face_vomiting:`,
-  `:facepalm::facepalm:${author}, Come on, at least offer a coffee before making such a commit!:facepalm::facepalm:`
-];
-var cancelledMessages = (author) => [
-  `:stop_sign: **${author}**, the workflow was cancelled.`,
-  `:warning: **${author}**, someone stopped the workflow.`,
-  `:construction: **${author}**, workflow cancelled - maybe next time!`,
-  `:x: **${author}**, workflow was interrupted.`,
-  `:no_entry_sign: **${author}**, workflow cancelled before completion.`
-];
-var skippedMessages = (author) => [
-  `:fast_forward: **${author}**, workflow was skipped.`,
-  `:next_track_button: **${author}**, skipping this one!`,
-  `:arrow_right: **${author}**, workflow skipped - moving on.`,
-  `:zzz: **${author}**, workflow took a nap (skipped).`,
-  `:sleeping: **${author}**, nothing to do here (skipped).`
-];
-var pickRandom = (values) => values[Math.floor(Math.random() * values.length)] ?? "";
-var getStatusInfo = (icons, messages) => ({
-  statusIcon: pickRandom(icons),
-  statusMessage: pickRandom(messages)
-});
+var getStatusIcon = (status) => M(status).with("success", () => ":white_check_mark:").with("failure", () => ":x:").with("cancelled", () => ":no_entry_sign:").with("skipped", () => ":fast_forward:").exhaustive();
 var getColor = (status) => M(status).with("success", () => 3066993).with("failure", () => 15158332).with("cancelled", () => 16753920).with("skipped", () => 10197915).exhaustive();
 var makePayloadField = (title, description, inline = false) => {
   return { name: title, value: description, inline };
 };
 
 // src/discord.ts
-var getFooterText = (params) => {
-  const { event } = params;
-  if (!event?.head_commit) return void 0;
-  return `
-Commit: ${event.head_commit.timestamp}
-Message: ${event.head_commit.message}
-Hash: ${event.head_commit.id.slice(0, 7)}
-`;
-};
 var getSonarFields = (params) => {
   const { sonarUrl, sonarProjectKey, sonarQualityGateStatus } = params;
   const sonarUrlComputed = (() => {
@@ -309,26 +272,24 @@ var getSonarFields = (params) => {
   }
   if (sonarQualityGateStatus)
     sonarMessage.push(makePayloadField("Quality Gate", `*${sonarQualityGateStatus.toUpperCase()}*`));
-  if (sonarMessage.length <= 0) return [];
   return sonarMessage;
 };
 var getBranch = (event) => {
   if (event.pull_request) return event.pull_request.head.ref;
-  return event.ref;
+  return event.ref ?? "";
 };
 async function sendDiscordWebhook(params) {
   const { webhookUrl, status, projectName, event } = params;
   const author = event.sender.login;
   const branch = getBranch(event);
-  const { statusIcon, statusMessage } = M(status).with("success", () => getStatusInfo(successIcons, successMessages(author))).with("failure", () => getStatusInfo(failureIcons, failureMessages(author))).with("cancelled", () => getStatusInfo(cancelledIcons, cancelledMessages(author))).with("skipped", () => getStatusInfo(skippedIcons, skippedMessages(author))).exhaustive();
-  const sonarFields = getSonarFields(params);
-  const jobField = makePayloadField("Status", `${statusIcon} ${params.status.toUpperCase()}`, true);
-  const workflowField = makePayloadField("Workflow", `${params.workflow}: ${params.failedJob ?? params.job}`, true);
-  const statusField = makePayloadField("Status", statusMessage);
-  const fields = [jobField, workflowField, ...sonarFields, statusField];
+  const fields = [
+    makePayloadField("Status", `${getStatusIcon(status)} ${status.toUpperCase()}`, true),
+    makePayloadField("Workflow", `${params.workflow}: ${params.failedJob ?? params.job}`, true),
+    ...getSonarFields(params)
+  ];
   if (params.testResultsUrl) fields.push(makePayloadField("Test Results", `[View Results](${params.testResultsUrl})`));
-  const footerText = getFooterText(params);
-  const commitList = params.showCommitList ? formatCommitList(event.commits ?? []) : "";
+  const commits = selectCommits(event, { onlyHead: params.onlyHeadCommit, order: params.commitOrder });
+  const commitList = formatCommitList(commits, { showDates: params.showCommitDates });
   const embed = {
     title: `${projectName} branch: ${branch}`,
     author: { name: author },
@@ -336,10 +297,9 @@ async function sendDiscordWebhook(params) {
     color: getColor(status),
     fields
   };
-  if (commitList) embed["description"] = commitList;
-  if (footerText) embed["footer"] = { text: footerText };
+  if (commitList) embed.description = commitList;
   const body = JSON.stringify({
-    username: "Github actions",
+    username: params.username,
     avatar_url: params.avatarUrl,
     embeds: [embed]
   });
@@ -14884,12 +14844,16 @@ var needsSchema = external_exports.string().transform((raw, ctx) => {
     return external_exports.NEVER;
   }
 }).pipe(external_exports.record(external_exports.string(), needSchema));
+var booleanInput = external_exports.enum(["true", "false", ""]).optional().default("false").transform((value) => value === "true");
+var commitOrderInput = external_exports.enum(["newest-first", "oldest-first", ""]).optional().default("newest-first").transform((value) => value === "" ? "newest-first" : value);
 var inputSchema = external_exports.object({
   INPUT_WEBHOOKURL: external_exports.string(),
   INPUT_PROJECTNAME: external_exports.string(),
   INPUT_NEEDS: needsSchema,
   INPUT_TESTRESULTSURL: external_exports.string().optional(),
-  INPUT_SHOWCOMMITLIST: external_exports.enum(["true", "false", ""]).optional().default("false").transform((value) => value === "true"),
+  INPUT_ONLYHEADCOMMIT: booleanInput,
+  INPUT_COMMITORDER: commitOrderInput,
+  INPUT_SHOWCOMMITDATES: booleanInput,
   INPUT_SONARPROJECTKEY: external_exports.string().optional(),
   INPUT_SONARURL: external_exports.string().optional(),
   INPUT_SONARQUALITYGATESTATUS: external_exports.string().optional(),
@@ -14936,7 +14900,9 @@ var actionInputSchema = inputSchema.extend(envSchema.shape).transform((input) =>
   projectName: input.INPUT_PROJECTNAME,
   needs: input.INPUT_NEEDS,
   testResultsUrl: input.INPUT_TESTRESULTSURL,
-  showCommitList: input.INPUT_SHOWCOMMITLIST,
+  onlyHeadCommit: input.INPUT_ONLYHEADCOMMIT,
+  commitOrder: input.INPUT_COMMITORDER,
+  showCommitDates: input.INPUT_SHOWCOMMITDATES,
   avatarUrl: input.INPUT_AVATARURL,
   username: input.INPUT_USERNAME,
   eventPath: input.GITHUB_EVENT_PATH,
@@ -14965,18 +14931,15 @@ var pullHeadSchema = external_exports.object({
 var pullRequestSchema = external_exports.object({
   head: pullHeadSchema
 });
-var headCommitSchema = external_exports.object({
-  timestamp: external_exports.string(),
-  message: external_exports.string(),
-  id: external_exports.string()
-});
 var commitSchema = external_exports.object({
   id: external_exports.string(),
   message: external_exports.string(),
-  url: external_exports.string()
+  url: external_exports.string(),
+  // GitHub sends the timestamp with the committer UTC offset.
+  timestamp: external_exports.iso.datetime({ offset: true })
 });
 var eventSchema = external_exports.object({
-  head_commit: headCommitSchema.optional(),
+  head_commit: commitSchema.optional(),
   // All commits of the push, oldest first. GitHub caps the array at 20.
   // Absent on pull_request events, empty on some force pushes.
   commits: external_exports.array(commitSchema).optional(),

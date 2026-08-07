@@ -16,20 +16,16 @@ const pullRequestSchema = z.object({
     head: pullHeadSchema,
 })
 
-const headCommitSchema = z.object({
-    timestamp: z.string(),
-    message: z.string(),
-    id: z.string(),
-})
-
 const commitSchema = z.object({
     id: z.string(),
     message: z.string(),
     url: z.string(),
+    // GitHub sends the timestamp with the committer UTC offset.
+    timestamp: z.iso.datetime({ offset: true }),
 })
 
 export const eventSchema = z.object({
-    head_commit: headCommitSchema.optional(),
+    head_commit: commitSchema.optional(),
     // All commits of the push, oldest first. GitHub caps the array at 20.
     // Absent on pull_request events, empty on some force pushes.
     commits: z.array(commitSchema).optional(),
