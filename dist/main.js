@@ -212,6 +212,25 @@ var aggregateStatus = (needs) => {
   return "success";
 };
 var getFailedJobs = (needs) => Object.entries(needs).filter(([, job]) => job.result === "failure").map(([jobId]) => jobId);
+var MAX_COMMIT_LIST_LENGTH = 3500;
+var MAX_COMMIT_LINE_LENGTH = 100;
+var formatCommitList = (commits) => {
+  const lines = commits.map((commit) => {
+    const firstLine = commit.message.split("\n")[0];
+    const message = firstLine.length > MAX_COMMIT_LINE_LENGTH ? `${firstLine.slice(0, MAX_COMMIT_LINE_LENGTH)}\u2026` : firstLine;
+    return `[\`${commit.id.slice(0, 7)}\`](${commit.url}) ${message}`;
+  });
+  const kept = [];
+  let length = 0;
+  for (const line of lines) {
+    if (length + line.length + 1 > MAX_COMMIT_LIST_LENGTH) break;
+    kept.push(line);
+    length += line.length + 1;
+  }
+  const dropped = lines.length - kept.length;
+  if (dropped > 0) kept.push(`\u2026and ${dropped} more commits`);
+  return kept.join("\n");
+};
 var successIcons = [":unicorn:", ":man_dancing:", ":ghost:", ":dancer:", ":scream_cat:"];
 var failureIcons = [":fire:", "dizzy_face", ":man_facepalming:", ":poop:", ":skull:"];
 var cancelledIcons = [":stop_sign:", ":warning:", ":construction:", ":x:", ":no_entry_sign:"];
@@ -300,6 +319,7 @@ async function sendDiscordWebhook(params) {
   const fields = [jobField, workflowField, ...sonarFields, statusField];
   if (params.testResultsUrl) fields.push(makePayloadField("Test Results", `[View Results](${params.testResultsUrl})`));
   const footerText = getFooterText(params);
+  const commitList = params.showCommitList ? formatCommitList(event.commits ?? []) : "";
   const embed = {
     title: `${projectName} branch: ${branch}`,
     author: { name: author },
@@ -307,6 +327,7 @@ async function sendDiscordWebhook(params) {
     color: getColor(status),
     fields
   };
+  if (commitList) embed["description"] = commitList;
   if (footerText) embed["footer"] = { text: footerText };
   const body = JSON.stringify({
     username: "Github actions",
@@ -4384,6 +4405,7 @@ var inputSchema = z2.object({
   INPUT_PROJECTNAME: z2.string(),
   INPUT_NEEDS: needsSchema,
   INPUT_TESTRESULTSURL: z2.string().optional(),
+  INPUT_SHOWCOMMITLIST: z2.enum(["true", "false", ""]).optional().default("false").transform((value) => value === "true"),
   INPUT_SONARPROJECTKEY: z2.string().optional(),
   INPUT_SONARURL: z2.string().optional(),
   INPUT_SONARQUALITYGATESTATUS: z2.string().optional(),
@@ -4430,6 +4452,7 @@ var actionInputSchema = inputSchema.merge(envSchema).transform((input) => ({
   projectName: input.INPUT_PROJECTNAME,
   needs: input.INPUT_NEEDS,
   testResultsUrl: input.INPUT_TESTRESULTSURL,
+  showCommitList: input.INPUT_SHOWCOMMITLIST,
   avatarUrl: input.INPUT_AVATARURL,
   username: input.INPUT_USERNAME,
   eventPath: input.GITHUB_EVENT_PATH,
@@ -4463,8 +4486,16 @@ var headCommitSchema = z2.object({
   message: z2.string(),
   id: z2.string()
 });
+var commitSchema = z2.object({
+  id: z2.string(),
+  message: z2.string(),
+  url: z2.string()
+});
 var eventSchema = z2.object({
   head_commit: headCommitSchema.optional(),
+  // All commits of the push, oldest first. GitHub caps the array at 20.
+  // Absent on pull_request events, empty on some force pushes.
+  commits: z2.array(commitSchema).optional(),
   pull_request: pullRequestSchema.optional(),
   sender: userSchema,
   ref: z2.string().optional().transform((str) => str?.replace("refs/heads/", ""))
