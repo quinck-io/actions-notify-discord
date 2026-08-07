@@ -151,44 +151,6 @@ Three inputs control the section:
       sonarQualityGateStatus: 'sonar quality gate status'
 ```
 
-# Migrating from v3
-
-In v3 you had to compute the status yourself, usually with a hand-written step in every workflow:
-
-```yaml
-# no longer needed in v4
-- name: Determine Overall Status
-  id: check-status
-  run: |
-      if ${{ contains(needs.*.result, 'failure') }}; then
-        echo "status=failure" >> $GITHUB_OUTPUT
-      elif ${{ contains(needs.*.result, 'cancelled') }}; then
-        echo "status=cancelled" >> $GITHUB_OUTPUT
-      elif ${{ contains(needs.*.result, 'skipped') }}; then
-        echo "status=skipped" >> $GITHUB_OUTPUT
-      else
-        echo "status=success" >> $GITHUB_OUTPUT
-      fi
-      echo "failed_jobs=$(echo '${{ toJson(needs) }}' | jq -r 'to_entries[] | select(.value.result == "failure") | .key')" >> $GITHUB_OUTPUT
-
-- uses: quinck-io/actions-notify-discord@v3
-  with:
-      webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-      status: ${{ steps.check-status.outputs.status }}
-      projectName: 'your project name'
-      failedJob: ${{ steps.check-status.outputs.failed_jobs }}
-```
-
-In v4 you delete that whole step and pass `needs` instead:
-
-```yaml
-- uses: quinck-io/actions-notify-discord@v4
-  with:
-      webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-      projectName: 'your project name'
-      needs: ${{ toJson(needs) }}
-```
-
 Notes:
 
 - the `status` and `failedJob` inputs were removed, they are now derived from `needs`
