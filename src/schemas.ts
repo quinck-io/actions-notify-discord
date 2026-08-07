@@ -5,7 +5,7 @@ import type { GitEvent } from './schemas/git'
 const DEFAULT_USERNAME = 'Github Action'
 const DEFAULT_AVATARURL = 'https://cdn-icons-png.flaticon.com/512/25/25231.png'
 
-export const workflowStatusSchema = z.enum(['failure', 'success', 'skipped', 'cancelled'])
+const workflowStatusSchema = z.enum(['failure', 'success', 'skipped', 'cancelled'])
 export type WorkflowStatus = z.infer<typeof workflowStatusSchema>
 
 /**
@@ -149,7 +149,7 @@ export const actionInputSchema = inputSchema.extend(envSchema.shape).transform(i
     sonarQualityGateStatus: input.INPUT_SONARQUALITYGATESTATUS,
 }))
 
-export type ActionInput = z.infer<typeof actionInputSchema>
+type ActionInput = z.infer<typeof actionInputSchema>
 
 export type DiscordNotificationParams = ActionInput & {
     event: GitEvent

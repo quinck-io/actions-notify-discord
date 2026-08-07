@@ -19,7 +19,6 @@
         "prepare": "node esbuild.js"
     },
     "dependencies": {
-        "@actions/core": "^1.11.1",
         "ts-pattern": "^5.9.0",
         "zod": "^4.4.0"
     },
