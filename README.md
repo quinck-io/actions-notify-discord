@@ -31,6 +31,11 @@ send-notification:
               # [Optional] URL to test results
               testResultsUrl: ''
 
+              # [Optional] Show every commit of the push in the message body
+              # Only applies to push events
+              # Default: false
+              showCommitList: ''
+
               # [Optional] SonarCloud project key
               sonarProjectKey: ''
 
@@ -60,6 +65,19 @@ The overall status is computed from the result of every job in `needs`:
 Skipped jobs are ignored: a job skipped by an `if:`, event or branch condition does not downgrade the status. This matches how GitHub concludes a run. The names of the failed jobs are collected automatically and shown in the message.
 
 # Scenarios
+
+## With the commit list
+
+Set `showCommitList: 'true'` to list every commit of the push in the message body. Each line shows the linked short hash and the first line of the commit message. GitHub caps the push payload at 20 commits. Longer lists are truncated with an "…and N more commits" note. Pull request events have no commit list, the message stays unchanged there.
+
+```yaml
+- uses: quinck-io/actions-notify-discord@v4
+  with:
+      webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+      projectName: 'your project name'
+      needs: ${{ toJson(needs) }}
+      showCommitList: 'true'
+```
 
 ## Just pipeline result
 

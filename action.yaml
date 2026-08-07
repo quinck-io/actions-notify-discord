@@ -15,6 +15,10 @@ inputs:
     testResultsUrl:
         description: 'URL to test results'
         required: false
+    showCommitList:
+        description: 'If true, show every commit of the push in the message body. Only applies to push events.'
+        required: false
+        default: 'false'
     sonarProjectKey:
         description: 'SonarCloud project key'
         required: false

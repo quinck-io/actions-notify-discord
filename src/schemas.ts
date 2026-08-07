@@ -43,6 +43,11 @@ const inputSchema = z.object({
     INPUT_PROJECTNAME: z.string(),
     INPUT_NEEDS: needsSchema,
     INPUT_TESTRESULTSURL: z.string().optional(),
+    INPUT_SHOWCOMMITLIST: z
+        .enum(['true', 'false', ''])
+        .optional()
+        .default('false')
+        .transform(value => value === 'true'),
     INPUT_SONARPROJECTKEY: z.string().optional(),
     INPUT_SONARURL: z.string().optional(),
     INPUT_SONARQUALITYGATESTATUS: z.string().optional(),
@@ -113,6 +118,7 @@ export const actionInputSchema = inputSchema.merge(envSchema).transform(input =>
     projectName: input.INPUT_PROJECTNAME,
     needs: input.INPUT_NEEDS,
     testResultsUrl: input.INPUT_TESTRESULTSURL,
+    showCommitList: input.INPUT_SHOWCOMMITLIST,
     avatarUrl: input.INPUT_AVATARURL,
     username: input.INPUT_USERNAME,
     eventPath: input.GITHUB_EVENT_PATH,

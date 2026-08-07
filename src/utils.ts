@@ -1,5 +1,6 @@
 import { match } from 'ts-pattern'
 import { Field, Needs, WorkflowStatus } from './schemas'
+import { Commit } from './schemas/git'
 
 /**
  * Derive the overall workflow status from the `needs` context.
@@ -23,6 +24,39 @@ export const getFailedJobs = (needs: Needs): string[] =>
     Object.entries(needs)
         .filter(([, job]) => job.result === 'failure')
         .map(([jobId]) => jobId)
+
+// Discord caps the embed description at 4096 characters. Keep a margin.
+const MAX_COMMIT_LIST_LENGTH = 3500
+const MAX_COMMIT_LINE_LENGTH = 100
+
+/**
+ * Format the commits of a push as one markdown line per commit,
+ * oldest first: linked short hash plus the first line of the message.
+ * Lines that pass the Discord description cap are dropped and counted.
+ */
+export const formatCommitList = (commits: Commit[]): string => {
+    const lines = commits.map(commit => {
+        const firstLine = commit.message.split('\n')[0]
+        const message =
+            firstLine.length > MAX_COMMIT_LINE_LENGTH
+                ? `${firstLine.slice(0, MAX_COMMIT_LINE_LENGTH)}…`
+                : firstLine
+        return `[\`${commit.id.slice(0, 7)}\`](${commit.url}) ${message}`
+    })
+
+    const kept: string[] = []
+    let length = 0
+    for (const line of lines) {
+        if (length + line.length + 1 > MAX_COMMIT_LIST_LENGTH) break
+        kept.push(line)
+        length += line.length + 1
+    }
+
+    const dropped = lines.length - kept.length
+    if (dropped > 0) kept.push(`…and ${dropped} more commits`)
+
+    return kept.join('\n')
+}
 
 export const successIcons = [':unicorn:', ':man_dancing:', ':ghost:', ':dancer:', ':scream_cat:']
 

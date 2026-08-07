@@ -8,6 +8,7 @@ import {
     cancelledMessages,
     skippedIcons,
     skippedMessages,
+    formatCommitList,
     getColor,
     getStatusInfo,
     makePayloadField,
@@ -80,6 +81,7 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
     if (params.testResultsUrl) fields.push(makePayloadField('Test Results', `[View Results](${params.testResultsUrl})`))
 
     const footerText = getFooterText(params)
+    const commitList = params.showCommitList ? formatCommitList(event.commits ?? []) : ''
 
     const embed: Embed = {
         title: `${projectName} branch: ${branch}`,
@@ -89,6 +91,7 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
         fields,
     }
 
+    if (commitList) embed['description'] = commitList
     if (footerText) embed['footer'] = { text: footerText }
 
     const body = JSON.stringify({
