@@ -1,6 +1,6 @@
 import type { DiscordNotificationParams, Embed, Field } from './schemas'
 import type { GitEvent } from './schemas/git'
-import { formatCommitList, getColor, getStatusIcon, makePayloadField, selectCommits } from './utils'
+import { formatCommitLines, getColor, getStatusIcon, makeCommitFields, makePayloadField, selectCommits } from './utils'
 
 const getSonarFields = (params: DiscordNotificationParams): Field[] => {
     const { sonarUrl, sonarProjectKey, sonarQualityGateStatus } = params
@@ -47,7 +47,7 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
     if (params.testResultsUrl) fields.push(makePayloadField('Test Results', `[View Results](${params.testResultsUrl})`))
 
     const commits = selectCommits(event, { onlyHead: params.onlyHeadCommit, order: params.commitOrder })
-    const commitList = formatCommitList(commits, { showDates: params.showCommitDates })
+    fields.push(...makeCommitFields(formatCommitLines(commits, { showDates: params.showCommitDates })))
 
     const embed: Embed = {
         title: `${projectName} branch: ${branch}`,
@@ -56,8 +56,6 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
         color: getColor(status),
         fields,
     }
-
-    if (commitList) embed.description = commitList
 
     const body = JSON.stringify({
         username: params.username,

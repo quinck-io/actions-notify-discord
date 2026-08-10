@@ -26,9 +26,13 @@ export const getFailedJobs = (needs: Needs): string[] =>
         .filter(([, job]) => job.result === 'failure')
         .map(([jobId]) => jobId)
 
-// Discord caps the embed description at 4096 characters. Keep a margin.
+// Discord caps the whole embed at 6000 characters. Keep a margin.
 const MAX_COMMIT_LIST_LENGTH = 3500
+// Discord caps a single field value at 1024 characters. Keep a margin.
+const MAX_FIELD_VALUE_LENGTH = 1000
 const MAX_COMMIT_LINE_LENGTH = 100
+// Discord renders a field with this name as a value with no header.
+const BLANK_FIELD_NAME = '\u200b'
 
 export type CommitSelectionOptions = {
     /** Keep only the head commit instead of the full push. */
@@ -55,11 +59,11 @@ export type CommitListOptions = {
 }
 
 /**
- * Format commits under a bold "Commits" header, one markdown line per commit:
- * linked short hash, optional ISO date, and the first line of the message.
- * Lines that pass the Discord description cap are dropped and counted.
+ * Format commits as one markdown line each: linked short hash, optional ISO
+ * date, and the first line of the message.
+ * Lines that pass the commit list cap are dropped and counted.
  */
-export const formatCommitList = (commits: Commit[], options: CommitListOptions): string => {
+export const formatCommitLines = (commits: Commit[], options: CommitListOptions): string[] => {
     const lines = commits.map(commit => {
         const firstLine = commit.message.split('\n')[0] ?? ''
         const message =
@@ -79,8 +83,32 @@ export const formatCommitList = (commits: Commit[], options: CommitListOptions):
     const dropped = lines.length - kept.length
     if (dropped > 0) kept.push(`…and ${dropped} more commits`)
 
-    if (kept.length === 0) return ''
-    return ['**Commits**', ...kept].join('\n')
+    return kept
+}
+
+/**
+ * Pack the commit lines into fields, under a "Commits" header.
+ * One field value holds at most 1024 characters, so a long list continues in
+ * extra fields. The extra fields carry a blank name.
+ */
+export const makeCommitFields = (lines: string[]): Field[] => {
+    if (lines.length === 0) return []
+
+    const chunks: string[][] = []
+    let current: string[] = []
+    let length = 0
+    for (const line of lines) {
+        if (current.length > 0 && length + line.length + 1 > MAX_FIELD_VALUE_LENGTH) {
+            chunks.push(current)
+            current = []
+            length = 0
+        }
+        current.push(line)
+        length += line.length + 1
+    }
+    chunks.push(current)
+
+    return chunks.map((chunk, index) => makePayloadField(index === 0 ? 'Commits' : BLANK_FIELD_NAME, chunk.join('\n')))
 }
 
 /**

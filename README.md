@@ -77,7 +77,8 @@ Skipped jobs are ignored: a job skipped by an `if:`, event or branch condition d
 The message is one embed:
 
 - **Status** and **Workflow** fields on top, with a fixed status icon
-- a **Commits** section below: one line per commit with the linked short hash and the first line of the commit message
+- then the optional **Test Results** and SonarCloud fields
+- a **Commits** section last: one line per commit with the linked short hash and the first line of the commit message
 
 By default every commit of the push is shown, newest first. GitHub caps the push payload at 20 commits. Longer lists are truncated with an "…and N more commits" note. Pull request events have no commit list.
 
