@@ -219,50 +219,39 @@ var aggregateStatus = (needs) => {
   return "success";
 };
 var getFailedJobs = (needs) => Object.entries(needs).filter(([, job]) => job.result === "failure").map(([jobId]) => jobId);
-var MAX_COMMIT_LIST_LENGTH = 3500;
-var MAX_FIELD_VALUE_LENGTH = 1e3;
+var MAX_DESCRIPTION_LENGTH = 4096;
 var MAX_COMMIT_LINE_LENGTH = 100;
-var BLANK_FIELD_NAME = "\u200B";
+var COMMITS_HEADER = "**Commits**";
 var selectCommits = (event, options) => {
   const newestFirst = (event.commits ?? []).toReversed();
   if (newestFirst.length === 0) return event.head_commit ? [event.head_commit] : [];
   const selected = options.onlyHead ? newestFirst.slice(0, 1) : newestFirst;
   return options.order === "oldest-first" ? selected.toReversed() : selected;
 };
-var formatCommitLines = (commits, options) => {
-  const lines = commits.map((commit) => {
-    const firstLine = commit.message.split("\n")[0] ?? "";
-    const message = firstLine.length > MAX_COMMIT_LINE_LENGTH ? `${firstLine.slice(0, MAX_COMMIT_LINE_LENGTH)}\u2026` : firstLine;
-    const date5 = options.showDates ? ` \`${commit.timestamp.slice(0, 10)}\`` : "";
-    return `[\`${commit.id.slice(0, 7)}\`](${commit.url})${date5} ${message}`;
-  });
+var formatCommitLines = (commits, options) => commits.map((commit) => {
+  const firstLine = commit.message.split("\n")[0] ?? "";
+  const message = firstLine.length > MAX_COMMIT_LINE_LENGTH ? `${firstLine.slice(0, MAX_COMMIT_LINE_LENGTH)}\u2026` : firstLine;
+  const date5 = options.showDates ? ` \`${commit.timestamp.slice(0, 10)}\`` : "";
+  return `[\`${commit.id.slice(0, 7)}\`](${commit.url})${date5} ${message}`;
+});
+var droppedNote = (dropped) => `\u2026and ${dropped} more commit${dropped === 1 ? "" : "s"}`;
+var makeDescription = (header, commitLines) => {
+  if (commitLines.length === 0) return header;
+  const head = `${header}
+
+${COMMITS_HEADER}`;
   const kept = [];
-  let length = 0;
-  for (const line of lines) {
-    if (length + line.length + 1 > MAX_COMMIT_LIST_LENGTH) break;
+  let length = head.length;
+  for (const [index, line] of commitLines.entries()) {
+    const rest = commitLines.length - index - 1;
+    const reserved = rest > 0 ? droppedNote(rest).length + 1 : 0;
+    if (length + line.length + 1 + reserved > MAX_DESCRIPTION_LENGTH) break;
     kept.push(line);
     length += line.length + 1;
   }
-  const dropped = lines.length - kept.length;
-  if (dropped > 0) kept.push(`\u2026and ${dropped} more commits`);
-  return kept;
-};
-var makeCommitFields = (lines) => {
-  if (lines.length === 0) return [];
-  const chunks = [];
-  let current = [];
-  let length = 0;
-  for (const line of lines) {
-    if (current.length > 0 && length + line.length + 1 > MAX_FIELD_VALUE_LENGTH) {
-      chunks.push(current);
-      current = [];
-      length = 0;
-    }
-    current.push(line);
-    length += line.length + 1;
-  }
-  chunks.push(current);
-  return chunks.map((chunk, index) => makePayloadField(index === 0 ? "Commits" : BLANK_FIELD_NAME, chunk.join("\n")));
+  const dropped = commitLines.length - kept.length;
+  if (dropped > 0) kept.push(droppedNote(dropped));
+  return [head, ...kept].join("\n");
 };
 var getStatusIcon = (status) => M(status).with("success", () => ":white_check_mark:").with("failure", () => ":x:").with("cancelled", () => ":no_entry_sign:").with("skipped", () => ":fast_forward:").exhaustive();
 var getColor = (status) => M(status).with("success", () => 3066993).with("failure", () => 15158332).with("cancelled", () => 16753920).with("skipped", () => 10197915).exhaustive();
@@ -300,19 +289,16 @@ async function sendDiscordWebhook(params) {
   const { webhookUrl, status, projectName, event } = params;
   const author = event.sender.login;
   const branch = getBranch(event);
-  const fields = [
-    makePayloadField("Status", `${getStatusIcon(status)} ${status.toUpperCase()}`, true),
-    makePayloadField("Workflow", `${params.workflow}: ${params.failedJob ?? params.job}`, true),
-    ...getSonarFields(params)
-  ];
+  const fields = [...getSonarFields(params)];
   if (params.testResultsUrl) fields.push(makePayloadField("Test Results", `[View Results](${params.testResultsUrl})`));
   const commits = selectCommits(event, { onlyHead: params.onlyHeadCommit, order: params.commitOrder });
-  fields.push(...makeCommitFields(formatCommitLines(commits, { showDates: params.showCommitDates })));
+  const header = `**${params.workflow}: ${params.failedJob ?? params.job}** \xB7 ${getStatusIcon(status)} ${status.toUpperCase()}`;
   const embed = {
     title: `${projectName} branch: ${branch}`,
     author: { name: author },
     url: `${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`,
     color: getColor(status),
+    description: makeDescription(header, formatCommitLines(commits, { showDates: params.showCommitDates })),
     fields
   };
   const body = JSON.stringify({

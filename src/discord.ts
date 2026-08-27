@@ -1,6 +1,6 @@
 import type { DiscordNotificationParams, Embed, Field } from './schemas'
 import type { GitEvent } from './schemas/git'
-import { formatCommitLines, getColor, getStatusIcon, makeCommitFields, makePayloadField, selectCommits } from './utils'
+import { formatCommitLines, getColor, getStatusIcon, makeDescription, makePayloadField, selectCommits } from './utils'
 
 const getSonarFields = (params: DiscordNotificationParams): Field[] => {
     const { sonarUrl, sonarProjectKey, sonarQualityGateStatus } = params
@@ -38,22 +38,19 @@ export async function sendDiscordWebhook(params: DiscordNotificationParams): Pro
     const author = event.sender.login
     const branch = getBranch(event)
 
-    const fields: Field[] = [
-        makePayloadField('Status', `${getStatusIcon(status)} ${status.toUpperCase()}`, true),
-        makePayloadField('Workflow', `${params.workflow}: ${params.failedJob ?? params.job}`, true),
-        ...getSonarFields(params),
-    ]
+    const fields: Field[] = [...getSonarFields(params)]
 
     if (params.testResultsUrl) fields.push(makePayloadField('Test Results', `[View Results](${params.testResultsUrl})`))
 
     const commits = selectCommits(event, { onlyHead: params.onlyHeadCommit, order: params.commitOrder })
-    fields.push(...makeCommitFields(formatCommitLines(commits, { showDates: params.showCommitDates })))
+    const header = `**${params.workflow}: ${params.failedJob ?? params.job}** · ${getStatusIcon(status)} ${status.toUpperCase()}`
 
     const embed: Embed = {
         title: `${projectName} branch: ${branch}`,
         author: { name: author },
         url: `${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`,
         color: getColor(status),
+        description: makeDescription(header, formatCommitLines(commits, { showDates: params.showCommitDates })),
         fields,
     }
 

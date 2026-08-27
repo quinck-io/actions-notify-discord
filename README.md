@@ -76,11 +76,13 @@ Skipped jobs are ignored: a job skipped by an `if:`, event or branch condition d
 
 The message is one embed:
 
-- **Status** and **Workflow** fields on top, with a fixed status icon
-- then the optional **Test Results** and SonarCloud fields
-- a **Commits** section last: one line per commit with the linked short hash and the first line of the commit message
+- a header line with the workflow and job name, then a fixed status icon and the status
+- a **Commits** section under it: one line per commit with the linked short hash and the first line of the commit message
+- the optional **Test Results** and SonarCloud fields last
 
-By default every commit of the push is shown, newest first. GitHub caps the push payload at 20 commits. Longer lists are truncated with an "…and N more commits" note. Pull request events have no commit list.
+The header and the commit list live in the embed description rather than in fields: a field value caps at 1024 characters, so a long list would be split across several fields and Discord renders a visible gap between them.
+
+By default every commit of the push is shown, newest first. GitHub caps the push payload at 20 commits. Lists that would pass Discord's 4096 character description cap are truncated with an "…and N more commits" note. Pull request events have no commit list.
 
 Three inputs control the section:
 
