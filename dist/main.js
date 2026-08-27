@@ -292,7 +292,7 @@ async function sendDiscordWebhook(params) {
   const fields = [...getSonarFields(params)];
   if (params.testResultsUrl) fields.push(makePayloadField("Test Results", `[View Results](${params.testResultsUrl})`));
   const commits = selectCommits(event, { onlyHead: params.onlyHeadCommit, order: params.commitOrder });
-  const header = `**${params.workflow}: ${params.failedJob ?? params.job}** \xB7 ${getStatusIcon(status)} ${status.toUpperCase()}`;
+  const header = `**${params.workflow}: ${params.failedJob ?? params.job}** \u2014 ${status.toUpperCase()} ${getStatusIcon(status)}`;
   const embed = {
     title: `${projectName} branch: ${branch}`,
     author: { name: author },

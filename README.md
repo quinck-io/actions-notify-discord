@@ -76,7 +76,7 @@ Skipped jobs are ignored: a job skipped by an `if:`, event or branch condition d
 
 The message is one embed:
 
-- a header line with the workflow and job name, then a fixed status icon and the status
+- a header line with the workflow and job name, then the status and a fixed status icon
 - a **Commits** section under it: one line per commit with the linked short hash and the first line of the commit message
 - the optional **Test Results** and SonarCloud fields last
 
