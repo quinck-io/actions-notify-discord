@@ -29,6 +29,83 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 // src/main.ts
 var import_node_fs = __toESM(require("node:fs"));
 
+// src/fields.ts
+var MAX_FIELDS = 25;
+var MAX_FIELD_NAME_LENGTH = 256;
+var MAX_FIELD_VALUE_LENGTH = 1024;
+var MAX_EMBED_LENGTH = 6e3;
+var warn = (message) => {
+  console.log(`::warning::${message}`);
+};
+var truncate = (text, max) => text.length > max ? `${text.slice(0, max - 1)}\u2026` : text;
+var parseFields = (raw, options) => {
+  const fields = [];
+  let current;
+  for (const [index, line] of raw.split("\n").entries()) {
+    if (line.trim() === "") continue;
+    if (/^\s/.test(line)) {
+      if (!current) {
+        warn(`fields: line ${index + 1} is indented but there is no field to continue, ignored.`);
+        continue;
+      }
+      current.value = current.value === "" ? line.trim() : `${current.value}
+${line.trim()}`;
+      continue;
+    }
+    const parsed = splitLine(line);
+    if (!parsed) {
+      warn(`fields: line ${index + 1} is not a \`Name: value\` pair, ignored.`);
+      current = void 0;
+      continue;
+    }
+    current = { name: parsed.name, value: parsed.value, inline: options.inline };
+    fields.push(current);
+  }
+  return fields.filter((field) => field.value.trim() !== "").map(clampField);
+};
+var splitLine = (line) => {
+  if (line.endsWith(":")) {
+    const name2 = line.slice(0, -1).trim();
+    return name2 === "" ? void 0 : { name: name2, value: "" };
+  }
+  const separator = line.indexOf(": ");
+  if (separator <= 0) return void 0;
+  const name = line.slice(0, separator).trim();
+  if (name === "") return void 0;
+  return { name, value: line.slice(separator + 2).trim() };
+};
+var clampField = (field) => {
+  if (field.name.length > MAX_FIELD_NAME_LENGTH)
+    warn(
+      `fields: the name of "${truncate(field.name, 30)}" exceeds ${MAX_FIELD_NAME_LENGTH} characters, truncated.`
+    );
+  if (field.value.length > MAX_FIELD_VALUE_LENGTH)
+    warn(`fields: the value of "${field.name}" exceeds ${MAX_FIELD_VALUE_LENGTH} characters, truncated.`);
+  return {
+    ...field,
+    name: truncate(field.name, MAX_FIELD_NAME_LENGTH),
+    value: truncate(field.value, MAX_FIELD_VALUE_LENGTH)
+  };
+};
+var embedBaseLength = (embed) => (embed.title?.length ?? 0) + (embed.description?.length ?? 0) + (embed.author?.name?.length ?? 0);
+var fitFields = (embed, fields) => {
+  if (fields.length > MAX_FIELDS)
+    warn(`fields: ${fields.length} fields given, Discord allows ${MAX_FIELDS}, extra dropped.`);
+  const kept = [];
+  let length = embedBaseLength(embed);
+  for (const field of fields.slice(0, MAX_FIELDS)) {
+    if (length + field.name.length + field.value.length > MAX_EMBED_LENGTH) {
+      warn(
+        `fields: the embed would exceed ${MAX_EMBED_LENGTH} characters, "${field.name}" and following dropped.`
+      );
+      break;
+    }
+    kept.push(field);
+    length += field.name.length + field.value.length;
+  }
+  return kept;
+};
+
 // node_modules/.pnpm/ts-pattern@5.9.0/node_modules/ts-pattern/dist/index.js
 var t = /* @__PURE__ */ Symbol.for("@ts-pattern/matcher");
 var e = /* @__PURE__ */ Symbol.for("@ts-pattern/isVariadic");
@@ -255,32 +332,8 @@ ${COMMITS_HEADER}`;
 };
 var getStatusIcon = (status) => M(status).with("success", () => ":white_check_mark:").with("failure", () => ":x:").with("cancelled", () => ":no_entry_sign:").with("skipped", () => ":fast_forward:").exhaustive();
 var getColor = (status) => M(status).with("success", () => 3066993).with("failure", () => 15158332).with("cancelled", () => 16753920).with("skipped", () => 10197915).exhaustive();
-var makePayloadField = (title, description, inline = false) => {
-  return { name: title, value: description, inline };
-};
 
 // src/discord.ts
-var getSonarFields = (params) => {
-  const { sonarUrl, sonarProjectKey, sonarQualityGateStatus } = params;
-  const sonarUrlComputed = (() => {
-    if (sonarUrl) {
-      return sonarUrl;
-    }
-    if (sonarProjectKey) {
-      const branch = getBranch(params.event);
-      return `https://sonarcloud.io/summary/new_code?id=${sonarProjectKey}&branch=${branch}`;
-    }
-    return void 0;
-  })();
-  const sonarMessage = [];
-  if (sonarUrlComputed) {
-    const sonarUrlField = makePayloadField("SonarCloud", sonarUrlComputed);
-    sonarMessage.push(sonarUrlField);
-  }
-  if (sonarQualityGateStatus)
-    sonarMessage.push(makePayloadField("Quality Gate", `*${sonarQualityGateStatus.toUpperCase()}*`));
-  return sonarMessage;
-};
 var getBranch = (event) => {
   if (event.pull_request) return event.pull_request.head.ref;
   return event.ref ?? "";
@@ -289,8 +342,6 @@ async function sendDiscordWebhook(params) {
   const { webhookUrl, status, projectName, event } = params;
   const author = event.sender.login;
   const branch = getBranch(event);
-  const fields = [...getSonarFields(params)];
-  if (params.testResultsUrl) fields.push(makePayloadField("Test Results", `[View Results](${params.testResultsUrl})`));
   const commits = selectCommits(event, { onlyHead: params.onlyHeadCommit, order: params.commitOrder });
   const header = `**${params.workflow}: ${params.failedJob ?? params.job}** \u2014 ${status.toUpperCase()} ${getStatusIcon(status)}`;
   const embed = {
@@ -298,9 +349,9 @@ async function sendDiscordWebhook(params) {
     author: { name: author },
     url: `${params.serverUrl}/${params.repository}/actions/runs/${params.runId}`,
     color: getColor(status),
-    description: makeDescription(header, formatCommitLines(commits, { showDates: params.showCommitDates })),
-    fields
+    description: makeDescription(header, formatCommitLines(commits, { showDates: params.showCommitDates }))
   };
+  embed.fields = fitFields(embed, parseFields(params.fields, { inline: params.inlineFields }));
   const body = JSON.stringify({
     username: params.username,
     avatar_url: params.avatarUrl,
@@ -14853,13 +14904,11 @@ var inputSchema = external_exports.object({
   INPUT_WEBHOOKURL: external_exports.string(),
   INPUT_PROJECTNAME: external_exports.string(),
   INPUT_NEEDS: needsSchema,
-  INPUT_TESTRESULTSURL: external_exports.string().optional(),
   INPUT_ONLYHEADCOMMIT: booleanInput,
   INPUT_COMMITORDER: commitOrderInput,
   INPUT_SHOWCOMMITDATES: booleanInput,
-  INPUT_SONARPROJECTKEY: external_exports.string().optional(),
-  INPUT_SONARURL: external_exports.string().optional(),
-  INPUT_SONARQUALITYGATESTATUS: external_exports.string().optional(),
+  INPUT_FIELDS: external_exports.string().optional().default(""),
+  INPUT_INLINEFIELDS: booleanInput,
   INPUT_AVATARURL: external_exports.string().optional().default(DEFAULT_AVATARURL).transform((avatarUrl) => avatarUrl === "" ? DEFAULT_AVATARURL : avatarUrl),
   INPUT_USERNAME: external_exports.string().optional().default(DEFAULT_USERNAME).transform((username) => username === "" ? DEFAULT_USERNAME : username)
 });
@@ -14902,10 +14951,11 @@ var actionInputSchema = inputSchema.extend(envSchema.shape).transform((input) =>
   webhookUrl: input.INPUT_WEBHOOKURL,
   projectName: input.INPUT_PROJECTNAME,
   needs: input.INPUT_NEEDS,
-  testResultsUrl: input.INPUT_TESTRESULTSURL,
   onlyHeadCommit: input.INPUT_ONLYHEADCOMMIT,
   commitOrder: input.INPUT_COMMITORDER,
   showCommitDates: input.INPUT_SHOWCOMMITDATES,
+  fields: input.INPUT_FIELDS,
+  inlineFields: input.INPUT_INLINEFIELDS,
   avatarUrl: input.INPUT_AVATARURL,
   username: input.INPUT_USERNAME,
   eventPath: input.GITHUB_EVENT_PATH,
@@ -14913,11 +14963,7 @@ var actionInputSchema = inputSchema.extend(envSchema.shape).transform((input) =>
   workflow: input.GITHUB_WORKFLOW,
   repository: input.GITHUB_REPOSITORY,
   serverUrl: input.GITHUB_SERVER_URL,
-  runId: input.GITHUB_RUN_ID,
-  // Sonar
-  sonarUrl: input.INPUT_SONARURL,
-  sonarProjectKey: input.INPUT_SONARPROJECTKEY,
-  sonarQualityGateStatus: input.INPUT_SONARQUALITYGATESTATUS
+  runId: input.GITHUB_RUN_ID
 }));
 
 // src/schemas/git.ts

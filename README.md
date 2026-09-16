@@ -15,7 +15,7 @@ send-notification:
     needs: [build, lint, test, deploy] # the jobs whose result you want reported
     if: always()
     steps:
-        - uses: quinck-io/actions-notify-discord@v5
+        - uses: quinck-io/actions-notify-discord@v6
           with:
               # [Required] Discord Webhook URL
               # use secrets: i.e. ${{ secrets.DISCORD_WEBHOOK }}
@@ -27,9 +27,6 @@ send-notification:
               # [Required] The needs context, JSON encoded
               # always pass ${{ toJson(needs) }}
               needs: ''
-
-              # [Optional] URL to test results
-              testResultsUrl: ''
 
               # [Optional] Show only the head commit instead of every commit
               # of the push. Only applies to push events
@@ -44,14 +41,13 @@ send-notification:
               # Default: false
               showCommitDates: ''
 
-              # [Optional] SonarCloud project key
-              sonarProjectKey: ''
+              # [Optional] Extra embed fields, one `Name: value` per line.
+              # Values support Discord markdown, empty values drop the field
+              fields: ''
 
-              # [Optional] SonarCloud url
-              sonarUrl: ''
-
-              # [Optional] Status of the SonarCloud Quality Gate
-              sonarQualityGateStatus: ''
+              # [Optional] Render the extra fields inline, in up to three columns
+              # Default: false
+              inlineFields: ''
 
               # [Optional] Username to display in the message
               # Default: Github Action
@@ -78,7 +74,7 @@ The message is one embed:
 
 - a header line with the workflow and job name, then the status and a fixed status icon
 - a **Commits** section under it: one line per commit with the linked short hash and the first line of the commit message
-- the optional **Test Results** and SonarCloud fields last
+- the extra `fields` last, if any
 
 The header and the commit list live in the embed description rather than in fields: a field value caps at 1024 characters, so a long list would be split across several fields and Discord renders a visible gap between them.
 
@@ -90,12 +86,36 @@ Three inputs control the section:
 - `commitOrder: 'oldest-first'` reverses the order
 - `showCommitDates: 'true'` adds the ISO date of each commit to its line
 
+## Extra fields
+
+The `fields` input appends embed fields after the commit list, one `Name: value` per line:
+
+```yaml
+fields: |
+    Test Results: [View](${{ steps.tests.outputs.url_html }})
+    Quality Gate: **${{ needs.sonar.outputs.gate }}**
+    Environment: staging
+    Failing tests:
+        login redirects to /home
+        cart total rounds down
+```
+
+- the first `: ` splits name and value, so URLs in values are safe
+- values support Discord markdown (links, bold, code), names do not
+- indented lines continue the previous value on a new line, a line ending with `:` opens such a field
+- a field whose value is empty is dropped, so a `${{ }}` expression that evaluates to nothing removes its field. That is how conditional fields work
+- any other line is reported as a workflow warning and skipped, the notification is still sent
+
+`inlineFields: 'true'` renders the fields side by side, in up to three columns, which suits short values.
+
+Discord caps an embed at 25 fields, 256 characters per name, 1024 per value and 6000 overall. Anything over is truncated or dropped with a workflow warning.
+
 # Scenarios
 
 ## Only the head commit
 
 ```yaml
-- uses: quinck-io/actions-notify-discord@v5
+- uses: quinck-io/actions-notify-discord@v6
   with:
       webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       projectName: 'your project name'
@@ -106,25 +126,16 @@ Three inputs control the section:
 ## Just pipeline result
 
 ```yaml
-- uses: quinck-io/actions-notify-discord@v5
+- uses: quinck-io/actions-notify-discord@v6
   with:
       webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       projectName: 'your project name'
       needs: ${{ toJson(needs) }}
 ```
 
-## With Tests
+## With extra fields
 
-```yaml
-- uses: quinck-io/actions-notify-discord@v5
-  with:
-      webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-      projectName: 'your project name'
-      needs: ${{ toJson(needs) }}
-      testResultsUrl: 'url to test results'
-```
-
-### Using dorny/test-reporter
+Any step output or expression can become a field. Here a test report link, a SonarCloud link and a quality gate status:
 
 ```yaml
 - uses: dorny/test-reporter@v1
@@ -134,31 +145,26 @@ Three inputs control the section:
       path: 'test-results.json'
       reporter: mocha-json
 
-- uses: quinck-io/actions-notify-discord@v5
+- uses: quinck-io/actions-notify-discord@v6
   with:
       webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
       projectName: 'your project name'
       needs: ${{ toJson(needs) }}
-      testResultsUrl: ${{ steps.testsreport.outputs.url_html }}
+      inlineFields: 'true'
+      fields: |
+          Test Results: [View](${{ steps.testsreport.outputs.url_html }})
+          SonarCloud: https://sonarcloud.io/summary/new_code?id=YOUR_PROJECT_KEY&branch=${{ github.head_ref || github.ref_name }}
+          Quality Gate: **${{ needs.sonar.outputs.quality-gate-status }}**
 ```
 
-## With Sonar
-
-```yaml
-- uses: quinck-io/actions-notify-discord@v5
-  with:
-      webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-      projectName: 'your project name'
-      needs: ${{ toJson(needs) }}
-      sonarProjectKey: 'your sonar project key'
-      sonarQualityGateStatus: 'sonar quality gate status'
-```
+If the test step is skipped its output is empty and the **Test Results** field is simply left out.
 
 Notes:
 
+- `testResultsUrl`, `sonarProjectKey`, `sonarUrl` and `sonarQualityGateStatus` were removed in v6, use `fields`
 - the `status` and `failedJob` inputs were removed, they are now derived from `needs`
 - `skipped` no longer downgrades the status (v3 reported `skipped` if any job was skipped, v4 treats it as neutral, matching GitHub)
-- pipelines still pinned to `@v3` keep working unchanged
+- pipelines still pinned to `@v3` or `@v5` keep working unchanged
 
 # Contributing
 

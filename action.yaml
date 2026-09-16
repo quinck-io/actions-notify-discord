@@ -12,9 +12,6 @@ inputs:
     needs:
         description: 'JSON-encoded needs context of the calling job, pass the toJson(needs) expression. The overall status and the list of failed jobs are derived from it.'
         required: true
-    testResultsUrl:
-        description: 'URL to test results'
-        required: false
     onlyHeadCommit:
         description: 'If true, show only the head commit instead of every commit of the push. Only applies to push events.'
         required: false
@@ -27,15 +24,13 @@ inputs:
         description: 'If true, add the ISO date of each commit to the commit list.'
         required: false
         default: 'false'
-    sonarProjectKey:
-        description: 'SonarCloud project key'
+    fields:
+        description: 'Extra embed fields, one `Name: value` per line. Values support Discord markdown. Indented lines continue the previous value. Fields with an empty value are dropped.'
         required: false
-    sonarUrl:
-        description: 'SonarCloud url'
+    inlineFields:
+        description: 'If true, render the extra fields inline, in up to three columns.'
         required: false
-    sonarQualityGateStatus:
-        description: 'Status of the SonarCloud Quality Gate'
-        required: false
+        default: 'false'
     username:
         description: 'Username to display in the message'
         required: false

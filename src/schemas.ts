@@ -57,13 +57,11 @@ const inputSchema = z.object({
     INPUT_WEBHOOKURL: z.string(),
     INPUT_PROJECTNAME: z.string(),
     INPUT_NEEDS: needsSchema,
-    INPUT_TESTRESULTSURL: z.string().optional(),
     INPUT_ONLYHEADCOMMIT: booleanInput,
     INPUT_COMMITORDER: commitOrderInput,
     INPUT_SHOWCOMMITDATES: booleanInput,
-    INPUT_SONARPROJECTKEY: z.string().optional(),
-    INPUT_SONARURL: z.string().optional(),
-    INPUT_SONARQUALITYGATESTATUS: z.string().optional(),
+    INPUT_FIELDS: z.string().optional().default(''),
+    INPUT_INLINEFIELDS: booleanInput,
     INPUT_AVATARURL: z
         .string()
         .optional()
@@ -130,10 +128,11 @@ export const actionInputSchema = inputSchema.extend(envSchema.shape).transform(i
     webhookUrl: input.INPUT_WEBHOOKURL,
     projectName: input.INPUT_PROJECTNAME,
     needs: input.INPUT_NEEDS,
-    testResultsUrl: input.INPUT_TESTRESULTSURL,
     onlyHeadCommit: input.INPUT_ONLYHEADCOMMIT,
     commitOrder: input.INPUT_COMMITORDER,
     showCommitDates: input.INPUT_SHOWCOMMITDATES,
+    fields: input.INPUT_FIELDS,
+    inlineFields: input.INPUT_INLINEFIELDS,
     avatarUrl: input.INPUT_AVATARURL,
     username: input.INPUT_USERNAME,
     eventPath: input.GITHUB_EVENT_PATH,
@@ -142,11 +141,6 @@ export const actionInputSchema = inputSchema.extend(envSchema.shape).transform(i
     repository: input.GITHUB_REPOSITORY,
     serverUrl: input.GITHUB_SERVER_URL,
     runId: input.GITHUB_RUN_ID,
-
-    // Sonar
-    sonarUrl: input.INPUT_SONARURL,
-    sonarProjectKey: input.INPUT_SONARPROJECTKEY,
-    sonarQualityGateStatus: input.INPUT_SONARQUALITYGATESTATUS,
 }))
 
 type ActionInput = z.infer<typeof actionInputSchema>

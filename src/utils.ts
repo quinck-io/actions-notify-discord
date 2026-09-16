@@ -1,6 +1,6 @@
 import { match } from 'ts-pattern'
 
-import type { CommitOrder, Field, Needs, WorkflowStatus } from './schemas'
+import type { CommitOrder, Needs, WorkflowStatus } from './schemas'
 import type { Commit, GitEvent } from './schemas/git'
 
 /**
@@ -123,13 +123,3 @@ export const getColor = (status: WorkflowStatus): number =>
         .with('cancelled', () => 16753920) // orange
         .with('skipped', () => 10197915) // light gray
         .exhaustive()
-
-/**
- * Make a field for webhook payload
- * @param title title of the field
- * @param description description
- * @returns a Field which is sendable to discord
- */
-export const makePayloadField = (title: string, description: string, inline: boolean = false): Field => {
-    return { name: title, value: description, inline }
-}
