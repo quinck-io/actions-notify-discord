@@ -1,2 +1,11 @@
+nodeLinker: isolated
+dedupePeers: true
+autoDedupe: true
+lockfile:
+    includeResolutionSettings: true
+
+minimumReleaseAge: 4320
+minimumReleaseAgeExcludePrune: true
+
 allowBuilds:
     esbuild: false
